@@ -811,20 +811,36 @@ int32_t get_b_type_funct_3(riscv_instruction in) {
 	}
 }
 
-int32_t add_s_imediate(int32_t result, int32_t imediate) {
+uint32_t shift_and_mask_simple(int32_t instruction, int32_t mask, int32_t shift) {
+	return ((instruction >> shift) & mask);
+}
 
+//I WILL EAT MY SHOE IF THESE ARE ALL BUG FREE
+int32_t add_s_imediate(int32_t result, int32_t imediate) {
+	result += (shift_and_mask_simple(imediate, 0b11111, 0)) << 7;
+	result += (shift_and_mask_simple(imediate, 0b1111111, 5)) << 25;
+	return result;
 }
 
 int32_t add_b_imediate(int32_t result, int32_t imediate) {
-
+	result += (shift_and_mask_simple(imediate, 0b1, 11)) << 7;
+	result += (shift_and_mask_simple(imediate, 0b1111, 1)) << 8;
+	result += (shift_and_mask_simple(imediate, 0b1111111, 5)) << 25;
+	result += (shift_and_mask_simple(imediate, 0b1, 12)) << 31;
+	return result;
 }
 
 int32_t add_u_imediate(int32_t result, int32_t imediate) {
-
+	result += (shift_and_mask_simple(imediate, 0b11111111111111111111, 0)) << 12;
+	return result;
 }
 
 int32_t add_j_imediate(int32_t result, int32_t imediate) {
-
+	result += (shift_and_mask_simple(imediate, 0b11111111, 12)) << 12;
+	result += (shift_and_mask_simple(imediate, 0b1, 11)) << 19;
+	result += (shift_and_mask_simple(imediate, 0b1111111111, 1)) << 20;
+	result += (shift_and_mask_simple(imediate, 0b1, 20)) << 31;
+	return result;
 }
 
 int32_t encode_instruction(tokenized_instruction instruction) {
