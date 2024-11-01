@@ -720,10 +720,87 @@ int i_type_three(riscv_instruction input) {
 	return 0;
 }
 
+int32_t add_opcode(int32_t instruction, int32_t oppcode) {
+	instruction += oppcode;
+	return instruction;
+}
+
+int32_t add_rd (int32_t instruction, int32_t rd) {
+	instruction += rd << 7;
+	return instruction;
+}
+
+int32_t add_funct3(int32_t instruction, int32_t funct) {
+	instruction += funct << 12;
+	return instruction;
+}
+
+int32_t add_funct7(int32_t instruction, int32_t funct) {
+	instruction += funct << 25;
+	return instruction;
+}
+
+int32_t add_rs1(int32_t instruction, int32_t rs1) {
+	instruction += rs1 << 15;
+	return instruction;
+}
+
+int32_t add_rs2(int32_t instruction, int32_t rs2) {
+	instruction += rs2 << 20;
+	return instruction;
+}
+
 int32_t encode_instruction(tokenized_instruction instruction) {
-	int32_t result;
+	int32_t result = 0;
 	switch (instruction.major_type) {
 		case R:
+			result = add_opcode(result, 0b0110011);
+			result = add_rd(result, instruction.reg_dest);
+			result = add_rs1(result, instruction.reg_one);
+			result = add_rs2(result, instruction.reg_two);
+			switch (instruction.instruction) {
+				case ADD:
+					result = add_funct3(result, 0x00);
+					result = add_funct7(result, 0x00);
+					break;
+				case SUB:
+					result = add_funct3(result, 0x00);
+					result = add_funct7(result, 0x20);
+					break;
+				case XOR:
+					result = add_funct3(result, 0x40);
+					result = add_funct7(result, 0x00);
+					break;
+				case OR:
+					result = add_funct3(result, 0x60);
+					result = add_funct7(result, 0x00);
+					break;
+				case AND:
+					result = add_funct3(result, 0x70);
+					result = add_funct7(result, 0x00);
+					break;
+				case SLL:
+					result = add_funct3(result, 0x10);
+					result = add_funct7(result, 0x00);
+					break;
+				case SRL:
+					result = add_funct3(result, 0x50);
+					result = add_funct7(result, 0x00);
+					break;
+				case SRA:
+					result = add_funct3(result, 0x50);
+					result = add_funct7(result, 0x20);
+					break;
+				case SLT:
+					result = add_funct3(result, 0x20);
+					result = add_funct7(result, 0x00);
+					break;
+				case SLTU:
+					result = add_funct3(result, 0x30);
+					result = add_funct7(result, 0x00);
+					break;
+				default: printf("R type instruction not recognized.\n"); exit(0);
+			}
 			break;	
 		case I:	
 			if (i_type_one(instruction.instruction)) {
