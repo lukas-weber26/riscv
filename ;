@@ -367,6 +367,10 @@ typedef struct tokenized_instruction {
 	int reg_dest;	
 } tokenized_instruction;
 
+int32_t encode_instruction(tokenized_instruction instruction) {
+	return 1;
+}
+
 int is_valid(char input) {
 	char invalids [7] = {' ', ',', '\n', '\t', '(', ')', '\0'};
 	for (int i = 0; i < 7; i++) {
@@ -503,21 +507,7 @@ riscv_instruction get_riscv_from_char(char * target_string) {
 	} else if (s_strcmp("bgeu", target_string)) {
 		return BGEU;
 	} 
-	
-	//other
-	else if (s_strcmp("jal", target_string)) {
-		return JAL;
-	} else if (s_strcmp("jalr", target_string)) {
-		return JALR;
-	} else if (s_strcmp("lui", target_string)) {
-		return LUI;
-	} else if (s_strcmp("auipc", target_string)) {
-		return AUIPC;
-	} else if (s_strcmp("ecall", target_string)) {
-		return ECALL ;
-	} else if (s_strcmp("ebreak", target_string)) {
-		return EBREAK;
-	} 
+
 
 	else {
 		printf("Failed to identify instruction in: %s\n", target_string);
@@ -571,16 +561,6 @@ instruction_type instruction_type_from_riscv(riscv_instruction input) {
 		case BLTU:
 		case BGEU:
 			return B;
-		case JAL: 
-			return J;
-		case JALR: 
-			return I;
-		case LUI:
-		case AUIPC: 
-			return U;
-		case ECALL:
-		case EBREAK: 
-			return I;
 		default:
 			printf("Instruction type not recognized.\n");
 			exit(0);
@@ -647,118 +627,61 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 		check_reg(input_line);
 		new_instruction.reg_two = get_reg_from_char(input_line);
 	} else if (new_instruction.major_type == I || new_instruction.major_type == S) {
-		if (is_reg(input_line)) {	
-			check_reg(input_line);
-			new_instruction.reg_dest = get_reg_from_char(input_line);
+		check_reg(input_line);
+		new_instruction.reg_dest = get_reg_from_char(input_line);
+		input_line = eat_token(input_line);
+		input_line = eat_space(input_line);
+		check_valid(input_line);
+		if (is_reg(input_line)) {
+			new_instruction.reg_one = get_reg_from_char(input_line);
 			input_line = eat_token(input_line);
 			input_line = eat_space(input_line);
 			check_valid(input_line);
-			if (is_reg(input_line)) {
-				new_instruction.reg_one = get_reg_from_char(input_line);
-				input_line = eat_token(input_line);
-				input_line = eat_space(input_line);
-				check_valid(input_line);
-				check_im(input_line);
-				new_instruction.imediate= get_im_from_char(input_line);
-			} else if (is_im(input_line)) {
-				new_instruction.imediate= get_im_from_char(input_line);
-				input_line = eat_token(input_line);
-				input_line = eat_space(input_line);
-				check_valid(input_line);
-				check_reg(input_line);
-				new_instruction.reg_one = get_reg_from_char(input_line);
-			} else {
-				printf("S type error!\n");
-				exit(0);
-			}
-		} //outer if is for weird instructions (ecall ebreak)
-	} else if (new_instruction.major_type == J || new_instruction.major_type == U) {
-			check_reg(input_line);
-			new_instruction.reg_dest = get_reg_from_char(input_line);
-			input_line = eat_token(input_line);
-			input_line = eat_space(input_line);
-			check_valid(input_line);
+			check_im(input_line);
+			new_instruction.imediate= get_im_from_char(input_line);
+		} else if (is_im(input_line)) {
 			new_instruction.imediate= get_im_from_char(input_line);
 			input_line = eat_token(input_line);
 			input_line = eat_space(input_line);
 			check_valid(input_line);
 			check_reg(input_line);
 			new_instruction.reg_one = get_reg_from_char(input_line);
-	} 
-	
-
+		} else {
+			printf("S type error!\n");
+			exit(0);
+		}
+	} 		
 	return new_instruction;
 }
 
-int i_type_one(riscv_instruction input) {
-	riscv_instruction ok [9] = {ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, STTIU};
-	for (int i = 0; i < 9; i++) {
-		if (input == ok[i]) {
-			return 1;
-		}
+void print_tokenized_instruciton(tokenized_instruction input) {
+	//THIS IS FOR DEBUGING
+	//THIS IS NOT THE EXACT CORRECT FORM OF THE INSTRUCTION 
+	//TO GET THAT YOU HAVE TO ASSEMBLE IT COMPLETELY AND THEN DISASEMBLE IT
+	riscv_instruction_print(input.instruction);
+
+	if (input.major_type == R || input.major_type == S) {
+		printf("r%d, r%d, r%d\n", input.reg_dest, input.reg_one, input.reg_two);	
+	} else if (input.major_type == I || input.major_type == B) {
+		printf("r%d, r%d, %d\n", input.reg_dest, input.reg_one, input.imediate); 
+	
+	} else {
+		printf("Invalid major type in print function.\n");
+		exit(0);
 	}
-	return 0;
-}
-
-int i_type_two(riscv_instruction input) {
-	riscv_instruction ok [6] = {LB, LH, LW, LBU, LHU, JALR};
-	for (int i = 0; i < 6; i++) {
-		if (input == ok[i]) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-int i_type_three(riscv_instruction input) {
-	riscv_instruction ok [2] = {ECALL, EBREAK};
-	for (int i = 0; i < 2; i++) {
-		if (input == ok[i]) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-int32_t encode_instruction(tokenized_instruction instruction) {
-	int32_t result;
-	switch (instruction.major_type) {
-		case R:
-			break;	
-		case I:	
-			if (i_type_one(instruction.instruction)) {
-
-			} else if (i_type_two(instruction.instruction)) {
-
-			} else if (i_type_three(instruction.instruction)) {
-
-			} else {
-				printf("Horrible error turning instruction into int32.\n"); exit(0);
-			}
-			break;
-		case S:	
-			
-			break;
-		case B:	
-
-			break;
-		case U:	
-			
-			break;
-		case J:	
-
-			break;
-		default: printf("Horrible error turning instruction into int32.\n"); exit(0);
-	}	
-	return result;
-}
+} 
 
 int main() {
 	tokenized_instruction instruction = get_tokenized_instruction("add r1, r2, r3");
+	print_tokenized_instruciton(instruction);	
 	instruction = get_tokenized_instruction("addi r1, r2, 10");
+	print_tokenized_instruciton(instruction);	
 	instruction = get_tokenized_instruction("sub r1, r2, r3");
+	print_tokenized_instruciton(instruction);	
 	instruction = get_tokenized_instruction("xori r1, r2, 10");
+	print_tokenized_instruciton(instruction);	
 	instruction = get_tokenized_instruction("lb r1, 432(r2)");
+	print_tokenized_instruciton(instruction);	
 	//instruction * new_instruction = decode_instruction(0b1000000000100001000000010110011);
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
