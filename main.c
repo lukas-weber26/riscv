@@ -297,22 +297,33 @@ instruction * decode_instruction(int32_t input) {
 	return new_instruction;
 }
 
-typedef enum {ADD, SUB, ADDI, SUBI} riscv_instruction;
+typedef enum {
+	ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU, 
+	ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, STTIU
+} riscv_instruction;
 
 void riscv_instruction_print(riscv_instruction i) {
 	switch(i) {
-		case ADD:
-			printf("add ");
-			break;
-		case SUB:
-			printf("sub ");
-			break;
-		case ADDI:
-			printf("addi ");
-			break;
-		case SUBI:
-			printf("subi ");
-			break;
+		case ADD: printf("add "); break;
+		case SUB: printf("sub "); break;
+		case XOR: printf("xor "); break;
+		case OR: printf("or "); break;
+		case AND: printf("and "); break;
+		case SLL: printf("sll "); break;
+		case SRL: printf("srl "); break;
+		case SRA: printf("sra "); break;
+		case SLT: printf("slt "); break;
+		case SLTU: printf("sltu "); break;
+		//imediates
+		case ADDI: printf("addi "); break;
+		case XORI: printf("xori "); break;
+		case ORI: printf("ori "); break;
+		case ANDI: printf("addi "); break;
+		case SLLI: printf("slli "); break;
+		case SRLI: printf("srli "); break;
+		case SRAI: printf("srai "); break;
+		case SLTI: printf("slti "); break;
+		case STTIU: printf("sltiu "); break;
 		default:
 			printf("Unrecognized instruction\n");
 			exit(0);
@@ -391,13 +402,45 @@ int s_strcmp(char * instruction_string, char * compare) {
 riscv_instruction get_riscv_from_char(char * target_string) {
 	if (s_strcmp("add", target_string)) {
 		return ADD;
-	} else if (s_strcmp("addi", target_string)) {
-		return ADDI;
 	} else if (s_strcmp("sub", target_string)) {
 		return SUB;
-	} else if (s_strcmp("subi", target_string)) {
-		return SUBI;
-	} else {
+	} else if (s_strcmp("xor", target_string)) {
+		return XOR;
+	} else if (s_strcmp("or", target_string)) {
+		return OR;
+	} else if (s_strcmp("and", target_string)) {
+		return AND;
+	} else if (s_strcmp("sll", target_string)) {
+		return SLL;
+	} else if (s_strcmp("srl", target_string)) {
+		return SRL;
+	} else if (s_strcmp("sra", target_string)) {
+		return SRA;
+	} else if (s_strcmp("slt", target_string)) {
+		return SLT;
+	} else if (s_strcmp("sltu", target_string)) {
+		return SLTU;
+	} else if (s_strcmp("addi", target_string)) {
+		return ADDI;
+	} else if (s_strcmp("xori", target_string)) {
+		return XORI;
+	} else if (s_strcmp("ori", target_string)) {
+		return ORI;
+	} else if (s_strcmp("andi", target_string)) {
+		return ANDI;
+	} else if (s_strcmp("slli", target_string)) {
+		return SLLI;
+	} else if (s_strcmp("srli", target_string)) {
+		return SRLI;
+	} else if (s_strcmp("srai", target_string)) {
+		return SRAI;
+	} else if (s_strcmp("slti", target_string)) {
+		return SLTI;
+	} else if (s_strcmp("sttiu", target_string)) {
+		return STTIU;
+	}
+
+	else {
 		printf("Failed to identify instruction in: %s\n", target_string);
 		exit(0);
 	}
@@ -414,9 +457,24 @@ instruction_type instruction_type_from_riscv(riscv_instruction input) {
 	switch(input) {
 		case ADD:
 		case SUB:
+		case XOR:
+		case OR:
+		case AND:
+		case SLL:
+		case SRL:
+		case SRA:
+		case SLT:
+		case SLTU:
 			return R;
 		case ADDI:
-		case SUBI:
+		case XORI: 
+		case ORI: 
+		case ANDI: 
+		case SLLI: 
+		case SRLI: 
+		case SRAI: 
+		case SLTI: 
+		case STTIU:
 			return I;
 		default:
 			printf("Instruction type not recognized.\n");
@@ -507,7 +565,7 @@ int main() {
 	print_tokenized_instruciton(instruction);	
 	instruction = get_tokenized_instruction("sub r1, r2, r3");
 	print_tokenized_instruciton(instruction);	
-	instruction = get_tokenized_instruction("subi r1, r2, 10");
+	instruction = get_tokenized_instruction("xori r1, r2, 10");
 	print_tokenized_instruciton(instruction);	
 	//instruction * new_instruction = decode_instruction(0b1000000000100001000000010110011);
 	//print_instruction(new_instruction);
