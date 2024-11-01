@@ -299,7 +299,7 @@ instruction * decode_instruction(int32_t input) {
 
 typedef enum {
 	ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU, 
-	ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU,
+	ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, STTIU,
 	LB, LH, LW, LBU, LHU, 
 	SB, SH, SW, 
 	BEQ, BNE, BLT, BGE, BLTU, BGEU,
@@ -327,7 +327,7 @@ void riscv_instruction_print(riscv_instruction i) {
 		case SRLI: printf("srli "); break;
 		case SRAI: printf("srai "); break;
 		case SLTI: printf("slti "); break;
-		case SLTIU: printf("sltiu "); break;
+		case STTIU: printf("sltiu "); break;
 		//loads
 		case LB: printf("lb "); break;
 		case LH: printf("lh "); break;
@@ -463,8 +463,8 @@ riscv_instruction get_riscv_from_char(char * target_string) {
 		return SRAI;
 	} else if (s_strcmp("slti", target_string)) {
 		return SLTI;
-	} else if (s_strcmp("sltiu", target_string)) {
-		return SLTIU;
+	} else if (s_strcmp("sttiu", target_string)) {
+		return STTIU;
 	} 
 
 	//load bytes
@@ -553,7 +553,7 @@ instruction_type instruction_type_from_riscv(riscv_instruction input) {
 		case SRLI: 
 		case SRAI: 
 		case SLTI: 
-		case SLTIU:
+		case STTIU:
 		case LB:
 		case LH:
 		case LW:
@@ -697,7 +697,7 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 }
 
 int i_type_one(riscv_instruction input) {
-	riscv_instruction ok [9] = {ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU};
+	riscv_instruction ok [9] = {ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, STTIU};
 	for (int i = 0; i < 9; i++) {
 		if (input == ok[i]) {
 			return 1;
@@ -761,35 +761,6 @@ int32_t add_i_imediate(int32_t instruction, int32_t im) {
 	return instruction;
 }
 
-int32_t add_i_imediate_weird(int32_t instruction, int32_t im) {
-	instruction += im << 25;
-	return instruction;
-}
-
-int32_t get_i_type_funct_3(riscv_instruction type) {
-	switch (type) {
-		case ADDI: return 0x0;
-		case XORI: return 0x4;
-		case ORI:return 0x6;
-		case ANDI:return 0x7;
-		case SLLI:return 0x1;
-		case SRLI:return 0x5;
-		case SRAI:return 0x6;
-		case SLTI:return 0x2;
-		case SLTIU:return 0x3;
-		case LB: return 0x0;
-		case LH: return 0x1;
-		case LW:return 0x2;
-		case LBU:return 0x4;
-		case LHU:return 0x5;
-		case JALR:return 0x0;
-		case ECALL:return 0x0;
-		case EBREAK:return 0x0;
-		default: printf("Unknown I type instruction\n"); exit(0);
-
-	}
-}
-
 int32_t encode_instruction(tokenized_instruction instruction) {
 	int32_t result = 0;
 	switch (instruction.major_type) {
@@ -844,30 +815,11 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 			break;	
 		case I:	
 			if (i_type_one(instruction.instruction)) {
-				result = add_opcode(result, 0b0010011);
-				result = add_rd(result, instruction.reg_dest);
-				result = add_rs1(result, instruction.reg_one);
-				result = add_i_imediate(result, instruction.imediate);
-				result = add_funct3(result, get_i_type_funct_3(instruction.instruction));
-				if (instruction.instruction == SRAI) {
-					result = add_i_imediate_weird(result, 0x20);
-				}
+
 			} else if (i_type_two(instruction.instruction)) {
-				if (instruction.instruction == JALR) {
-					result = add_opcode(result, 0b1100111);
-				} else {
-					result = add_opcode(result, 0b0010011);
-				}
-				result = add_rd(result, instruction.reg_dest);
-				result = add_rs1(result, instruction.reg_one);
-				result = add_i_imediate(result, instruction.imediate);
-				result = add_funct3(result, get_i_type_funct_3(instruction.instruction));
+
 			} else if (i_type_three(instruction.instruction)) {
-				result = add_opcode(result, 0b1110011);
-				result = add_rd(result, instruction.reg_dest);
-				result = add_rs1(result, instruction.reg_one);
-				result = add_i_imediate(result, instruction.imediate);
-				result = add_funct3(result, get_i_type_funct_3(instruction.instruction));
+
 			} else {
 				printf("Horrible error turning instruction into int32.\n"); exit(0);
 			}
