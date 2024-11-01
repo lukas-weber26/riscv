@@ -790,6 +790,43 @@ int32_t get_i_type_funct_3(riscv_instruction type) {
 	}
 }
 
+int32_t get_s_type_funct_3(riscv_instruction in) {
+	switch(in) {
+		case SB: return 0x0;
+		case SH: return 0x1;
+		case SW: return 0x2;
+		default: printf("Unkown s type instruction\n"); exit(0);
+	}
+}
+
+int32_t get_b_type_funct_3(riscv_instruction in) {
+	switch(in) {
+		case BEQ: return 0x0;
+		case BNE: return 0x1;
+		case BLT: return 0x4;
+		case BGE: return 0x5;
+		case BLTU: return 0x6;
+		case BGEU: return 0x7;
+		default: printf("Unkown b type instruction\n"); exit(0);
+	}
+}
+
+int32_t add_s_imediate(int32_t result, int32_t imediate) {
+
+}
+
+int32_t add_b_imediate(int32_t result, int32_t imediate) {
+
+}
+
+int32_t add_u_imediate(int32_t result, int32_t imediate) {
+
+}
+
+int32_t add_j_imediate(int32_t result, int32_t imediate) {
+
+}
+
 int32_t encode_instruction(tokenized_instruction instruction) {
 	int32_t result = 0;
 	switch (instruction.major_type) {
@@ -873,16 +910,32 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 			}
 			break;
 		case S:	
-			
+			result = add_opcode(result, 0b0100011);
+			result = add_rd(result, instruction.reg_dest);
+			result = add_rs1(result, instruction.reg_one);
+			result = add_s_imediate(result, instruction.imediate);
+			result = add_funct3(result, get_s_type_funct_3(instruction.instruction));
 			break;
 		case B:	
-
+			result = add_opcode(result, 0b1100011);
+			result = add_rs1(result, instruction.reg_one);
+			result = add_rs2(result, instruction.reg_two);
+			result = add_b_imediate(result, instruction.imediate);
+			result = add_funct3(result, get_b_type_funct_3(instruction.instruction));
 			break;
 		case U:	
-			
+			if (instruction.instruction == LUI) {
+				result = add_opcode(result, 0b0110111);
+			} else if (instruction.instruction == AUIPC) {
+				result = add_opcode(result, 0b0010111);
+			}	
+			result = add_rd(result, instruction.reg_dest);
+			result = add_u_imediate(result, instruction.reg_dest);
 			break;
 		case J:	
-
+			result = add_opcode(result, 0b1101111);
+			result = add_rd(result, instruction.reg_dest);
+			result = add_j_imediate(result, instruction.reg_dest);
 			break;
 		default: printf("Horrible error turning instruction into int32.\n"); exit(0);
 	}	
