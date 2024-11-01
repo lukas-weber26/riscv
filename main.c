@@ -959,12 +959,12 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 }
 
 int main() {
-	tokenized_instruction instruction = get_tokenized_instruction("add r1, r2, r3");
-	instruction = get_tokenized_instruction("addi r1, r2, 10");
-	instruction = get_tokenized_instruction("sub r1, r2, r3");
-	instruction = get_tokenized_instruction("xori r1, r2, 10");
-	instruction = get_tokenized_instruction("lb r1, 432(r2)");
-	//instruction * new_instruction = decode_instruction(0b1000000000100001000000010110011);
+	char * source = "add r1, r2, r3";
+	int32_t encoded = encode_instruction(get_tokenized_instruction(source));
+	instruction * decoded = decode_instruction(encoded);
+	printf("%s \n",source);
+	disasemble_instruction(decoded);
+
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
 	//free(new_instruction);
