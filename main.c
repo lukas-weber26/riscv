@@ -299,7 +299,8 @@ instruction * decode_instruction(int32_t input) {
 
 typedef enum {
 	ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU, 
-	ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, STTIU
+	ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, STTIU,
+	LB, LH, LW, LBU, LHU
 } riscv_instruction;
 
 void riscv_instruction_print(riscv_instruction i) {
@@ -324,6 +325,12 @@ void riscv_instruction_print(riscv_instruction i) {
 		case SRAI: printf("srai "); break;
 		case SLTI: printf("slti "); break;
 		case STTIU: printf("sltiu "); break;
+		//loads
+		case LB: printf("lb "); break;
+		case LH: printf("lh "); break;
+		case LW: printf("lw "); break;
+		case LBU: printf("lbu "); break;
+		case LHU: printf("lhu "); break;
 		default:
 			printf("Unrecognized instruction\n");
 			exit(0);
@@ -438,7 +445,19 @@ riscv_instruction get_riscv_from_char(char * target_string) {
 		return SLTI;
 	} else if (s_strcmp("sttiu", target_string)) {
 		return STTIU;
-	}
+	} 
+
+	else if (s_strcmp("lb", target_string)) {
+		return LB;
+	} else if (s_strcmp("lh", target_string)) {
+		return LH;
+	} else if (s_strcmp("lw", target_string)) {
+		return LW;
+	} else if (s_strcmp("lbu", target_string)) {
+		return LBU;
+	} else if (s_strcmp("lhu", target_string)) {
+		return LHU;
+	} 
 
 	else {
 		printf("Failed to identify instruction in: %s\n", target_string);
@@ -475,6 +494,11 @@ instruction_type instruction_type_from_riscv(riscv_instruction input) {
 		case SRAI: 
 		case SLTI: 
 		case STTIU:
+		case LB:
+		case LH:
+		case LW:
+		case LBU:
+		case LHU:
 			return I;
 		default:
 			printf("Instruction type not recognized.\n");
@@ -489,11 +513,25 @@ void check_reg(char * input_line) {
 	}
 }
 
+int is_reg(char * input_line) {
+	if (*input_line != 'r') {
+		return 0;	
+	}
+	return 1;
+}
+
 void check_im(char * input_line) {
 	if (*input_line > '9' && *input_line < '0') {
 		printf("Input does not seem to be an imediate value: %s\n", input_line);
 		exit(0);
 	}
+}
+
+int is_im(char * input_line) {
+	if (*input_line > '9' && *input_line < '0') {
+		return 0;	
+	}
+	return 1;
 }
 
 int get_reg_from_char(char * input) {
@@ -533,25 +571,39 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 		input_line = eat_token(input_line);
 		input_line = eat_space(input_line);
 		check_valid(input_line);
-		check_reg(input_line);
-		new_instruction.reg_one = get_reg_from_char(input_line);
-		input_line = eat_token(input_line);
-		input_line = eat_space(input_line);
-		check_valid(input_line);
-		check_im(input_line);
-		new_instruction.imediate= get_im_from_char(input_line);
+		if (is_reg(input_line)) {
+			new_instruction.reg_one = get_reg_from_char(input_line);
+			input_line = eat_token(input_line);
+			input_line = eat_space(input_line);
+			check_valid(input_line);
+			check_im(input_line);
+			new_instruction.imediate= get_im_from_char(input_line);
+		} else if (is_im(input_line)) {
+			new_instruction.imediate= get_im_from_char(input_line);
+			input_line = eat_token(input_line);
+			input_line = eat_space(input_line);
+			check_valid(input_line);
+			check_reg(input_line);
+			new_instruction.reg_one = get_reg_from_char(input_line);
+		} else {
+			printf("I type error!\n");
+			exit(0);
+		}
 	}
 		
 	return new_instruction;
 }
 
 void print_tokenized_instruciton(tokenized_instruction input) {
+	//THIS IS FOR DEBUGING
+	//THIS IS NOT THE EXACT CORRECT FORM OF THE INSTRUCTION 
+	//TO GET THAT YOU HAVE TO ASSEMBLE IT COMPLETELY AND THEN DISASEMBLE IT
 	riscv_instruction_print(input.instruction);
 
 	if (input.major_type == R) {
 		printf("r%d, r%d, r%d\n", input.reg_dest, input.reg_one, input.reg_two);	
 	} else if (input.major_type == I) {
-		printf("r%d, r%d, %d\n", input.reg_dest, input.reg_one, input.imediate);	
+		printf("r%d, r%d, %d\n", input.reg_dest, input.reg_one, input.imediate); 
 	} else {
 		printf("Invalid major type in print function.\n");
 		exit(0);
@@ -566,6 +618,8 @@ int main() {
 	instruction = get_tokenized_instruction("sub r1, r2, r3");
 	print_tokenized_instruciton(instruction);	
 	instruction = get_tokenized_instruction("xori r1, r2, 10");
+	print_tokenized_instruciton(instruction);	
+	instruction = get_tokenized_instruction("lb r1, 432(r2)");
 	print_tokenized_instruciton(instruction);	
 	//instruction * new_instruction = decode_instruction(0b1000000000100001000000010110011);
 	//print_instruction(new_instruction);
