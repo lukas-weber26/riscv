@@ -433,7 +433,7 @@ void check_reg(char * input_line) {
 
 void check_im(char * input_line) {
 	if (*input_line > '9' && *input_line < '0') {
-		printf("", input_line);
+		printf("Input does not seem to be an imediate value: %s\n", input_line);
 		exit(0);
 	}
 }
