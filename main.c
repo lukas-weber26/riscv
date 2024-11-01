@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef int32_t raw_instruction;
 typedef enum {R, I, S, B, U, J} instruction_type;
@@ -296,11 +297,220 @@ instruction * decode_instruction(int32_t input) {
 	return new_instruction;
 }
 
-//ready to start execution
+typedef enum {ADD, SUB, ADDI, SUBI} riscv_instruction;
+
+void riscv_instruction_print(riscv_instruction i) {
+	switch(i) {
+		case ADD:
+			printf("add ");
+			break;
+		case SUB:
+			printf("sub ");
+			break;
+		case ADDI:
+			printf("addi ");
+			break;
+		case SUBI:
+			printf("subi ");
+			break;
+		default:
+			printf("Unrecognized instruction\n");
+			exit(0);
+	}
+}
+
+typedef struct tokenized_instruction {
+	instruction_type major_type;
+	riscv_instruction instruction;	
+	int reg_one;	
+	int reg_two;
+	int imediate;
+	int reg_dest;	
+} tokenized_instruction;
+
+int32_t encode_instruction(tokenized_instruction instruction) {
+	return 1;
+}
+
+int is_valid(char input) {
+	char invalids [7] = {' ', ',', '\n', '\t', '(', ')', '\0'};
+	for (int i = 0; i < 7; i++) {
+		if (invalids[i] == input) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int get_token_length(char * token_start) {
+	int i = 0;
+	while(is_valid(token_start[i])) {
+		i++;
+	}
+	return i;
+}
+
+char * eat_space(char * token_start) {
+	while(!is_valid(token_start[0])) {
+		token_start += 1;
+	}
+	return token_start;
+}
+
+char * eat_token(char * token_start) {
+	while(is_valid(token_start[0])) {
+		token_start += 1;
+	}
+	return token_start;
+}
+
+int check_end(char * string) {
+	if (string[0] == '\0') {
+		return 1;
+	}
+	return 0;
+}
+
+int s_strcmp(char * instruction_string, char * compare) {
+	int instruction_len = strlen(instruction_string);
+	int compare_len = strlen(compare);
+	if (compare_len < instruction_len) {
+		return 0;
+	}
+	for (int i = 0; i < instruction_len; i ++) {
+		if (instruction_string[i] != compare[i]) {
+			return 0;
+		}
+	}
+	if (is_valid(compare[instruction_len])) {
+		return 0;
+	}
+	return 1;
+}
+
+riscv_instruction get_riscv_from_char(char * target_string) {
+	if (s_strcmp("add", target_string)) {
+		return ADD;
+	} else if (s_strcmp("addi", target_string)) {
+		return ADDI;
+	} else if (s_strcmp("sub", target_string)) {
+		return SUB;
+	} else if (s_strcmp("subi", target_string)) {
+		return SUBI;
+	} else {
+		printf("Failed to identify instruction in: %s\n", target_string);
+		exit(0);
+	}
+}
+	
+void check_valid(char * input_line) {
+	if ((!is_valid(*input_line)) || check_end(input_line)) {
+		printf("Invalid instruction at: %s.\n", input_line);
+		exit(0);
+	}
+}
+
+instruction_type instruction_type_from_riscv(riscv_instruction input) {
+	switch(input) {
+		case ADD:
+		case SUB:
+			return R;
+		case ADDI:
+		case SUBI:
+			return I;
+		default:
+			printf("Instruction type not recognized.\n");
+			exit(0);
+	}
+} 
+
+void check_reg(char * input_line) {
+	if (*input_line != 'r') {
+		printf("Input does not seem to be a register: %s\n", input_line);
+		exit(0);
+	}
+}
+
+void check_im(char * input_line) {
+	if (*input_line > '9' && *input_line < '0') {
+		printf("", input_line);
+		exit(0);
+	}
+}
+
+int get_reg_from_char(char * input) {
+	return atoi(input + 1);
+}
+
+int get_im_from_char(char * input) {
+	return atoi(input);
+}
+
+tokenized_instruction get_tokenized_instruction(char * input_line) {
+	tokenized_instruction new_instruction;
+	check_valid(input_line);
+	new_instruction.instruction = get_riscv_from_char(input_line);
+	input_line = eat_token(input_line);
+	input_line = eat_space(input_line);
+	check_valid(input_line);
+	
+	new_instruction.major_type = instruction_type_from_riscv(new_instruction.instruction); 
+	
+	if (new_instruction.major_type == R) {
+		check_reg(input_line);
+		new_instruction.reg_dest = get_reg_from_char(input_line);
+		input_line = eat_token(input_line);
+		input_line = eat_space(input_line);
+		check_valid(input_line);
+		check_reg(input_line);
+		new_instruction.reg_one = get_reg_from_char(input_line);
+		input_line = eat_token(input_line);
+		input_line = eat_space(input_line);
+		check_valid(input_line);
+		check_reg(input_line);
+		new_instruction.reg_two = get_reg_from_char(input_line);
+	} else if (new_instruction.major_type == I) {
+		check_reg(input_line);
+		new_instruction.reg_dest = get_reg_from_char(input_line);
+		input_line = eat_token(input_line);
+		input_line = eat_space(input_line);
+		check_valid(input_line);
+		check_reg(input_line);
+		new_instruction.reg_one = get_reg_from_char(input_line);
+		input_line = eat_token(input_line);
+		input_line = eat_space(input_line);
+		check_valid(input_line);
+		check_im(input_line);
+		new_instruction.imediate= get_im_from_char(input_line);
+	}
+		
+	return new_instruction;
+}
+
+void print_tokenized_instruciton(tokenized_instruction input) {
+	riscv_instruction_print(input.instruction);
+
+	if (input.major_type == R) {
+		printf("r%d, r%d, r%d\n", input.reg_dest, input.reg_one, input.reg_two);	
+	} else if (input.major_type == I) {
+		printf("r%d, r%d, %d\n", input.reg_dest, input.reg_one, input.imediate);	
+	} else {
+		printf("Invalid major type in print function.\n");
+		exit(0);
+	}
+} 
 
 int main() {
-	instruction * new_instruction = decode_instruction(0b1000000000100001000000010110011);
-	print_instruction(new_instruction);
-	disasemble_instruction(new_instruction);
-	free(new_instruction);
+	tokenized_instruction instruction = get_tokenized_instruction("add r1, r2, r3");
+	print_tokenized_instruciton(instruction);	
+	instruction = get_tokenized_instruction("addi r1, r2, 10");
+	print_tokenized_instruciton(instruction);	
+	instruction = get_tokenized_instruction("sub r1, r2, r3");
+	print_tokenized_instruciton(instruction);	
+	instruction = get_tokenized_instruction("subi r1, r2, 10");
+	print_tokenized_instruciton(instruction);	
+	//instruction * new_instruction = decode_instruction(0b1000000000100001000000010110011);
+	//print_instruction(new_instruction);
+	//disasemble_instruction(new_instruction);
+	//free(new_instruction);
 }
