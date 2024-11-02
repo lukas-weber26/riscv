@@ -224,9 +224,9 @@ void disasemble_i_type(instruction * source, char * buff) {
 
 void disasemble_s_type(instruction * source, char * buff) {
 	switch(source->funct3) {
-		case 0x0: sprintf(buff, "sb r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
-		case 0x1: sprintf(buff, "sh r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
-		case 0x2: sprintf(buff, "sw r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
+		case 0x0: sprintf(buff, "sb r%d, %d(r%d)\n", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
+		case 0x1: sprintf(buff, "sh r%d, %d(r%d)\n", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
+		case 0x2: sprintf(buff, "sw r%d, %d(r%d)\n", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
 		default: printf("Invalid S type instruction\n"); exit(0);
 	}
 }
@@ -234,12 +234,12 @@ void disasemble_s_type(instruction * source, char * buff) {
 void disasemble_b_type(instruction * source, char * buff) {
 	int imediate = (source->im1 << 11) + (source->im2 << 1) + (source->im3 << 5) + (source->im4 << 12);
 	switch(source->funct3) {
-		case 0x0: sprintf(buff, "beq r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x1: sprintf(buff, "bne r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x4: sprintf(buff, "blt r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x5: sprintf(buff, "bge r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x6: sprintf(buff, "bltu r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x7: sprintf(buff, "bgeu r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
+		case 0x0: sprintf(buff, "beq r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
+		case 0x1: sprintf(buff, "bne r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
+		case 0x4: sprintf(buff, "blt r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
+		case 0x5: sprintf(buff, "bge r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
+		case 0x6: sprintf(buff, "bltu r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
+		case 0x7: sprintf(buff, "bgeu r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
 		default: printf("Invalid B type instruction\n"); exit(0);
 	}
 }
@@ -648,7 +648,7 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 	
 	new_instruction.major_type = instruction_type_from_riscv(new_instruction.instruction); 
 	
-	if (new_instruction.major_type == R || new_instruction.major_type == B) {
+	if (new_instruction.major_type == R) {
 		check_reg(input_line);
 		new_instruction.reg_dest = get_reg_from_char(input_line);
 		input_line = eat_token(input_line);
@@ -661,7 +661,20 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 		check_valid(input_line);
 		check_reg(input_line);
 		new_instruction.reg_two = get_reg_from_char(input_line);
-	} else if (new_instruction.major_type == I || new_instruction.major_type == S) {
+	} else if ( new_instruction.major_type == B) {
+		check_reg(input_line);
+		new_instruction.reg_one= get_reg_from_char(input_line);
+		input_line = eat_token(input_line);
+		input_line = eat_space(input_line);
+		check_valid(input_line);
+		check_reg(input_line);
+		new_instruction.reg_two= get_reg_from_char(input_line);
+		input_line = eat_token(input_line);
+		input_line = eat_space(input_line);
+		check_valid(input_line);
+		check_im(input_line);
+		new_instruction.imediate= get_im_from_char(input_line);
+	} else if (new_instruction.major_type == I) {
 		if (is_reg(input_line)) {	
 			check_reg(input_line);
 			new_instruction.reg_dest = get_reg_from_char(input_line);
@@ -694,6 +707,26 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 				new_instruction.imediate = 0x1;
 			}
 		}
+	
+	} else if (new_instruction.major_type == S) {
+		if (is_reg(input_line)) {	
+			check_reg(input_line);
+			new_instruction.reg_two= get_reg_from_char(input_line);
+			input_line = eat_token(input_line);
+			input_line = eat_space(input_line);
+			check_valid(input_line);
+			check_im(input_line);	
+			new_instruction.imediate= get_im_from_char(input_line);
+			input_line = eat_token(input_line);
+			input_line = eat_space(input_line);
+			check_valid(input_line);
+			check_reg(input_line);
+			new_instruction.reg_one= get_reg_from_char(input_line);
+		} else { 
+			printf("Horrible S error\n");
+			exit(0);
+		}
+		
 	} else if (new_instruction.major_type == J || new_instruction.major_type == U) {
 			check_reg(input_line);
 			new_instruction.reg_dest = get_reg_from_char(input_line);
@@ -942,8 +975,8 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 			break;
 		case S:	
 			result = add_opcode(result, 0b0100011);
-			result = add_rd(result, instruction.reg_dest);
 			result = add_rs1(result, instruction.reg_one);
+			result = add_rs2(result, instruction.reg_two);
 			result = add_s_imediate(result, instruction.imediate);
 			result = add_funct3(result, get_s_type_funct_3(instruction.instruction));
 			break;
@@ -1034,9 +1067,37 @@ void test_i_types() {
 	test_asm(buff);	
 }
 
+void test_s_types() {
+	char buff[100];
+	char *ops[] = {"sb", "sh", "sw", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops[i] != NULL) {
+			sprintf(buff, "%s r%d, %d(r%d)\n", ops[i], rand()%32, rand()%1024, rand()%32);
+			test_asm(buff);	
+			i++;
+		}
+	}
+}
+
+void test_b_types() {
+	char buff[100];
+	char *ops[] = {"beq", "bne", "blt", "bge", "bltu", "bgeu", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops[i] != NULL) {
+			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, (rand()%1024)*2);
+			test_asm(buff);	
+			i++;
+		}
+	}
+}
+
 int main() {
-	test_i_types();
+	//test_s_types();
+	//test_i_types();
 	//test_r_types();
+	test_b_types();
 	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
