@@ -180,21 +180,21 @@ void disasemble_i_type(instruction * source, char * buff) {
 				} else {printf("Unsuported imediate in i type.\n"); exit(0);}
 			case 0x5:
 				if (((source->im1 >> 5) & 0b1111111) == 0x00) {
-					sprintf(buff,"srli r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
+					sprintf(buff,"slli r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
 				} else if (((source->im1 >> 5) & 0b1111111) == 0x20) {
-					sprintf(buff,"srai r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
-				} else {printf("Unsuported imediate in special i type.\n"); exit(0);}
+					sprintf(buff,"sili r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
+				} else {printf("Unsuported imediate in i type.\n"); exit(0);}
 			case 0x2: sprintf(buff,"slti r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
 			case 0x3: sprintf(buff,"sltiu r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
 			default: printf("Unsuported func 3 value in i type disasembler: %x\n", source->funct3); exit(0);
 		}
 	} else if (source->opcode == 0b0000011) {
 		switch(source->funct3) {
-			case 0x0: sprintf(buff, "lb r%d, %d(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x1: sprintf(buff, "lh r%d, %d(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x2: sprintf(buff, "lw r%d, %d(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x4: sprintf(buff, "lbu r%d, %d(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x5: sprintf(buff, "lhu r%d, %d(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x0: sprintf(buff, "lb r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x1: sprintf(buff, "lh r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x2: sprintf(buff, "lw r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x4: sprintf(buff, "lbu r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x5: sprintf(buff, "lhu r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
 			default: printf("Unsuported func 3 value in i type disasembler: %x\n", source->funct3); exit(0);
 		}
 	} else if (source->opcode == 0b1110011) {
@@ -777,7 +777,11 @@ int32_t add_i_imediate(int32_t instruction, int32_t im) {
 }
 
 int32_t add_i_imediate_weird(int32_t instruction, int32_t im) {
-	instruction += (im << 25);
+	print_binary(instruction);
+	printf("\n");
+	instruction += (im << 26);
+	print_binary(instruction);
+	printf("\n");
 	return instruction;
 }
 int32_t get_i_type_funct_3(riscv_instruction type) {
@@ -923,7 +927,7 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 				if (instruction.instruction == JALR) {
 					result = add_opcode(result, 0b1100111);
 				} else {
-					result = add_opcode(result, 0b0000011);
+					result = add_opcode(result, 0b0010011);
 				}
 				result = add_rd(result, instruction.reg_dest);
 				result = add_rs1(result, instruction.reg_one);
@@ -984,7 +988,6 @@ void test_asm(char * source) {
 		printf("Failed test %s\n",source);
 		printf("Input: \n%s.\n",source);
 		printf("Output: \n%s.\n",destination);
-		printf("%d\n", encoded);
 		print_instruction(decoded);
 		free(decoded);
 		exit(0);
@@ -1006,31 +1009,15 @@ void test_r_types() {
 
 void test_i_types() {
 	char buff[100];
-	//char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", NULL};
+	char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", NULL};
 	//for (int j= 0; j < 1000; j++) {
-	//	int i = 0; 
-	//	while (ops[i] != NULL) {
-	//		sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
-	//		test_asm(buff);	
-	//		i++;
-	//	}
+		int i = 7; 
+		while (ops[i] != NULL) {
+			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
+			test_asm(buff);	
+			//i++;
+		}
 	//}
-	//
-	//char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
-	//for (int j= 0; j < 1000; j++) {
-	//	int i = 0; 
-	//	while (ops2[i] != NULL) {
-	//		sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
-	//		test_asm(buff);	
-	//		i++;
-	//	}
-	//}
-	
-	sprintf(buff, "ecall\n");
-	test_asm(buff);	
-	
-	sprintf(buff, "ebreak\n");
-	test_asm(buff);	
 }
 
 int main() {

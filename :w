@@ -3,6 +3,3 @@ main: main.c
 
 fast: main.c
 	gcc -Ofast ./main.c -o test 
-
-clang: main.c
-	clang -Ofast ./main.c -o test 
