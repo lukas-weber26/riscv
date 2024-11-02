@@ -806,6 +806,13 @@ int32_t add_rs2(int32_t instruction, int32_t rs2) {
 	return instruction;
 }
 
+int is_negative(int32_t number) {
+	if ((number >> 31) == 1) {
+		return 1;
+	}
+	return 0;
+}
+
 int32_t add_i_imediate(int32_t instruction, int32_t im) {
 	instruction += im << 20;
 	return instruction;
@@ -1042,31 +1049,35 @@ void test_r_types() {
 }
 
 void test_i_types() {
+	//char buff[100];
+	//char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", "jalr", NULL};
+	//for (int j= 0; j < 1000; j++) {
+	//	int i = 0; 
+	//	while (ops[i] != NULL) {
+	//		sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
+	//		test_asm(buff);	
+	//		i++;
+	//	}
+	//}
+	//
+	//char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
+	//for (int j= 0; j < 1000; j++) {
+	//	int i = 0; 
+	//	while (ops2[i] != NULL) {
+	//		sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
+	//		test_asm(buff);	
+	//		i++;
+	//	}
+	//}
+	//
+	//sprintf(buff, "ecall\n");
+	//test_asm(buff);	
+	//
+	//sprintf(buff, "ebreak\n");
+	//test_asm(buff);	
+
 	char buff[100];
-	char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", "jalr", NULL};
-	for (int j= 0; j < 1000; j++) {
-		int i = 0; 
-		while (ops[i] != NULL) {
-			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
-			test_asm(buff);	
-			i++;
-		}
-	}
-	
-	char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
-	for (int j= 0; j < 1000; j++) {
-		int i = 0; 
-		while (ops2[i] != NULL) {
-			sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
-			test_asm(buff);	
-			i++;
-		}
-	}
-	
-	sprintf(buff, "ecall\n");
-	test_asm(buff);	
-	
-	sprintf(buff, "ebreak\n");
+	sprintf(buff, "addi r1, r2, -10\n");
 	test_asm(buff);	
 }
 
@@ -1113,10 +1124,10 @@ void test_u_and_j_types() {
 
 int main() {
 	//test_s_types();
-	//test_i_types();
+	test_i_types();
 	//test_r_types();
 	//test_b_types();
-	test_u_and_j_types();
+	//test_u_and_j_types();
 	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
