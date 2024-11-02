@@ -246,9 +246,9 @@ void disasemble_b_type(instruction * source, char * buff) {
 
 void disasemble_u_type(instruction * source, char * buff) {
 	if (source->opcode == 0b0110111) {
-		printf("lui r%d, %d", source -> rd, source->im1);
+		sprintf(buff,"lui r%d, %d\n", source -> rd, source->im1);
 	} else if (source->opcode == 0b0010111) {
-		printf("auipc r%d, %d", source -> rd, source->im1);
+		sprintf(buff,"auipc r%d, %d\n", source -> rd, source->im1);
 	} else { 
 		printf("Invalid U type instruction.\n");
 		exit(0);
@@ -726,8 +726,7 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 			printf("Horrible S error\n");
 			exit(0);
 		}
-		
-	} else if (new_instruction.major_type == J || new_instruction.major_type == U) {
+	} else if (new_instruction.major_type == J) {
 			check_reg(input_line);
 			new_instruction.reg_dest = get_reg_from_char(input_line);
 			input_line = eat_token(input_line);
@@ -739,7 +738,14 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 			check_valid(input_line);
 			check_reg(input_line);
 			new_instruction.reg_one = get_reg_from_char(input_line);
-	} 
+	} else if (new_instruction.major_type == U) {
+			check_reg(input_line);
+			new_instruction.reg_dest = get_reg_from_char(input_line);
+			input_line = eat_token(input_line);
+			input_line = eat_space(input_line);
+			check_valid(input_line);
+			new_instruction.imediate= get_im_from_char(input_line);
+	}
 	
 
 	return new_instruction;
@@ -992,9 +998,12 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 				result = add_opcode(result, 0b0110111);
 			} else if (instruction.instruction == AUIPC) {
 				result = add_opcode(result, 0b0010111);
-			}	
+			} else {
+				printf("Bad u type oppcode\n");
+				exit(0);
+			}
 			result = add_rd(result, instruction.reg_dest);
-			result = add_u_imediate(result, instruction.reg_dest);
+			result = add_u_imediate(result, instruction.imediate);
 			break;
 		case J:	
 			result = add_opcode(result, 0b1101111);
@@ -1094,14 +1103,26 @@ void test_b_types() {
 }
 
 void test_u_and_j_types() {
-
+	//u types: 
+	char buff[100];
+	char *ops[] = {"lui", "auipc", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops[i] != NULL) {
+			sprintf(buff, "%s r%d, %d\n", ops[i], rand()%32, (rand()%8024)*2);
+			test_asm(buff);	
+			i++;
+		}
+	}
+	//three of these bastards left...	
 }
 
 int main() {
 	//test_s_types();
-	test_i_types();
+	//test_i_types();
 	//test_r_types();
 	//test_b_types();
+	test_u_and_j_types();
 	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
