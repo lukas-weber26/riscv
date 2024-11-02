@@ -733,11 +733,6 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 			input_line = eat_space(input_line);
 			check_valid(input_line);
 			new_instruction.imediate= get_im_from_char(input_line);
-			input_line = eat_token(input_line);
-			input_line = eat_space(input_line);
-			check_valid(input_line);
-			check_reg(input_line);
-			new_instruction.reg_one = get_reg_from_char(input_line);
 	} else if (new_instruction.major_type == U) {
 			check_reg(input_line);
 			new_instruction.reg_dest = get_reg_from_char(input_line);
@@ -869,7 +864,6 @@ uint32_t shift_and_mask_simple(int32_t instruction, int32_t mask, int32_t shift)
 	return ((instruction >> shift) & mask);
 }
 
-//I WILL EAT MY SHOE IF THESE ARE ALL BUG FREE
 int32_t add_s_imediate(int32_t result, int32_t imediate) {
 	result += (shift_and_mask_simple(imediate, 0b11111, 0)) << 7;
 	result += (shift_and_mask_simple(imediate, 0b1111111, 5)) << 25;
@@ -891,8 +885,8 @@ int32_t add_u_imediate(int32_t result, int32_t imediate) {
 
 int32_t add_j_imediate(int32_t result, int32_t imediate) {
 	result += (shift_and_mask_simple(imediate, 0b11111111, 12)) << 12;
-	result += (shift_and_mask_simple(imediate, 0b1, 11)) << 19;
-	result += (shift_and_mask_simple(imediate, 0b1111111111, 1)) << 20;
+	result += (shift_and_mask_simple(imediate, 0b1, 11)) << 20;
+	result += (shift_and_mask_simple(imediate, 0b1111111111, 1)) << 21;
 	result += (shift_and_mask_simple(imediate, 0b1, 20)) << 31;
 	return result;
 }
@@ -1008,7 +1002,7 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 		case J:	
 			result = add_opcode(result, 0b1101111);
 			result = add_rd(result, instruction.reg_dest);
-			result = add_j_imediate(result, instruction.reg_dest);
+			result = add_j_imediate(result, instruction.imediate);
 			break;
 		default: printf("Horrible error turning instruction into int32.\n"); exit(0);
 	}	
@@ -1105,16 +1099,16 @@ void test_b_types() {
 void test_u_and_j_types() {
 	//u types: 
 	char buff[100];
-	char *ops[] = {"lui", "auipc", NULL};
+	char *ops[] = {"jal","lui", "auipc", NULL};
 	for (int j= 0; j < 1000; j++) {
 		int i = 0; 
 		while (ops[i] != NULL) {
-			sprintf(buff, "%s r%d, %d\n", ops[i], rand()%32, (rand()%8024)*2);
+			sprintf(buff, "%s r%d, %d\n", ops[i], rand()%32, (rand()%5000) * 2);
 			test_asm(buff);	
 			i++;
 		}
 	}
-	//three of these bastards left...	
+	
 }
 
 int main() {
