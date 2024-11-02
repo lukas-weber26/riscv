@@ -3,6 +3,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+//binary print from geeksforgeeks
+void print_binary(int32_t n)
+{
+    int32_t i;
+    printf("0");
+    for (i = 1 << 31; i > 0; i = i / 2) {
+        if ((n & i) != 0) {
+            printf("1");
+        }
+        else {
+            printf("0");
+        }
+    }
+}
+	
 typedef int32_t raw_instruction;
 typedef enum {R, I, S, B, U, J} instruction_type;
 
@@ -110,41 +125,41 @@ void print_instruction(instruction * printable) {
 	}	
 }
 
-void disasemble_r_type(instruction * source) {
+void disasemble_r_type(instruction * source, char * buff) {
 	if (source->opcode == 0b0110011) {
 		switch(source->funct3) {
 			case 0x0:
-				if (source->funct7 == 0x00) { printf("add r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
-				} else if (source->funct7 == 0x20) { printf("sub r%d r%d r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"add r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				} else if (source->funct7 == 0x20) { sprintf(buff,"sub r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			case 0x4:
-				if (source->funct7 == 0x00) { printf("xor r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"xor r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			case 0x6:
-				if (source->funct7 == 0x00) { printf("or r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"or r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			case 0x7:
-				if (source->funct7 == 0x00) { printf("and r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"and r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			case 0x1:
-				if (source->funct7 == 0x00) { printf("sll r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"sll r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			case 0x5:
-				if (source->funct7 == 0x00) { printf("srl r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
-				} else if (source->funct7 == 0x20) { printf("sra r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"srl r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				} else if (source->funct7 == 0x20) { sprintf(buff,"sra r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			case 0x2:
-				if (source->funct7 == 0x00) { printf("slt r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"slt r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			case 0x3:
-				if (source->funct7 == 0x00) { printf("sltu r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
+				if (source->funct7 == 0x00) { sprintf(buff,"sltu r%d, r%d, r%d\n", source->rd, source->rs1, source->rs2);
 				} else {printf("Unsuported funct 7: %x", source->funct7); exit(0);}
 				break;
 			default: printf("Unsuported func 3 value in r type disasembler: %x\n", source->funct3); exit(0);
@@ -152,42 +167,42 @@ void disasemble_r_type(instruction * source) {
 	}
 }
 
-void disasemble_i_type(instruction * source) {
+void disasemble_i_type(instruction * source, char * buff) {
 	if (source->opcode == 0b0010011) {
 		switch(source->funct3) {
-			case 0x0: printf("addi r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
-			case 0x4: printf("xori r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
-			case 0x6: printf("orii r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
-			case 0x7: printf("andi r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
+			case 0x0: sprintf(buff, "addi r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
+			case 0x4: sprintf(buff, "xori r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
+			case 0x6: sprintf(buff, "orii r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
+			case 0x7: sprintf(buff, "andi r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
 			case 0x1:
 				if (((source->im1 >> 5) & 0b1111111) == 0x00) {
-					printf("slli r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
+					sprintf(buff,"slli r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
 				} else {printf("Unsuported imediate in i type.\n"); exit(0);}
 			case 0x5:
 				if (((source->im1 >> 5) & 0b1111111) == 0x00) {
-					printf("slli r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
+					sprintf(buff,"slli r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
 				} else if (((source->im1 >> 5) & 0b1111111) == 0x20) {
-					printf("sili r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
+					sprintf(buff,"sili r%d, r%d, %d\n", source->rd, source->rs1, ((source->im1 >> 0) & 0b11111)); break;
 				} else {printf("Unsuported imediate in i type.\n"); exit(0);}
-			case 0x2: printf("slti r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
-			case 0x3: printf("sltui r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
+			case 0x2: sprintf(buff,"slti r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
+			case 0x3: sprintf(buff,"sltui r%d, r%d, %d\n", source->rd, source->rs1, source->im1); break;
 			default: printf("Unsuported func 3 value in i type disasembler: %x\n", source->funct3); exit(0);
 		}
 	} else if (source->opcode == 0b0000011) {
 		switch(source->funct3) {
-			case 0x0: printf("lb r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x1: printf("lh r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x2: printf("lw r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x4: printf("lbu r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
-			case 0x5: printf("lhu r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x0: sprintf(buff, "lb r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x1: sprintf(buff, "lh r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x2: sprintf(buff, "lw r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x4: sprintf(buff, "lbu r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
+			case 0x5: sprintf(buff, "lhu r%d, %x(r%d)\n", source->rd, source->im1, source->rs1); break;
 			default: printf("Unsuported func 3 value in i type disasembler: %x\n", source->funct3); exit(0);
 		}
 	} else if (source->opcode == 0b1110011) {
 		if (source->funct3 == 0x0) {
 			if (source->im1 == 0x0) {
-				printf("ecall\n");
+				sprintf(buff,"ecall\n");
 			} else if (source->im1 == 0x1) {
-				printf("ebreak\n");
+				sprintf(buff,"ebreak\n");
 			} else {
 			printf("Unsuported imediate value in i type disasembler: %x\n", source->funct3);
 			exit(0);
@@ -198,7 +213,7 @@ void disasemble_i_type(instruction * source) {
 		}
 	} else if (source->opcode == 0b1100111) {
 		if (source->funct3 == 0x0) {
-			printf("jalr r%d, %x(r%d)\n", source->rd, source->im1, source->rs1);
+			sprintf(buff, "jalr r%d, %x(r%d)\n", source->rd, source->im1, source->rs1);
 		} else {
 			printf("Unsuported funct3 in i type disasembler: %x\n", source->funct3);
 		}
@@ -207,29 +222,29 @@ void disasemble_i_type(instruction * source) {
 	}
 }
 
-void disasemble_s_type(instruction * source) {
+void disasemble_s_type(instruction * source, char * buff) {
 	switch(source->funct3) {
-		case 0x0: printf("sb r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
-		case 0x1: printf("sh r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
-		case 0x2: printf("sw r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
+		case 0x0: sprintf(buff, "sb r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
+		case 0x1: sprintf(buff, "sh r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
+		case 0x2: sprintf(buff, "sw r%d, %d(r%d)", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
 		default: printf("Invalid S type instruction\n"); exit(0);
 	}
 }
 
-void disasemble_b_type(instruction * source) {
+void disasemble_b_type(instruction * source, char * buff) {
 	int imediate = (source->im1 << 11) + (source->im2 << 1) + (source->im3 << 5) + (source->im4 << 12);
 	switch(source->funct3) {
-		case 0x0: printf("beq r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x1: printf("bne r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x4: printf("blt r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x5: printf("bge r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x6: printf("bltu r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
-		case 0x7: printf("bgeu r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
+		case 0x0: sprintf(buff, "beq r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
+		case 0x1: sprintf(buff, "bne r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
+		case 0x4: sprintf(buff, "blt r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
+		case 0x5: sprintf(buff, "bge r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
+		case 0x6: sprintf(buff, "bltu r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
+		case 0x7: sprintf(buff, "bgeu r%d, r%d, %d", source -> rs1, source -> rs2, imediate); break;
 		default: printf("Invalid B type instruction\n"); exit(0);
 	}
 }
 
-void disasemble_u_type(instruction * source) {
+void disasemble_u_type(instruction * source, char * buff) {
 	if (source->opcode == 0b0110111) {
 		printf("lui r%d, %d", source -> rd, source->im1);
 	} else if (source->opcode == 0b0010111) {
@@ -240,24 +255,24 @@ void disasemble_u_type(instruction * source) {
 	}
 }
 
-void disasemble_j_type(instruction * source) {
+void disasemble_j_type(instruction * source, char * buff) {
 	if (source->opcode == 0b1101111) {
 		int imediate = (source->im1 << 12) + (source->im2 << 11) + (source->im3 << 1) + (source->im4 << 20); 
-		printf("jal r%d, %d\n", source -> rd, imediate);
+		sprintf(buff, "jal r%d, %d\n", source -> rd, imediate);
 	} else { 
 		printf("Invalid U type instruction.\n");
 		exit(0);
 	}
 }
 
-void disasemble_instruction(instruction * printable) {
+void disasemble_instruction(instruction * printable, char * buff) {
 	switch (printable->type) {
-		case R: disasemble_r_type(printable); break;
-		case I: disasemble_i_type(printable); break;
-		case S: disasemble_s_type(printable); break;
-		case B: disasemble_b_type(printable); break; //b is for bad cause this one is the uggliest
-		case U: disasemble_u_type(printable); break;
-		case J: disasemble_j_type(printable); break;
+		case R: disasemble_r_type(printable, buff); break;
+		case I: disasemble_i_type(printable, buff); break;
+		case S: disasemble_s_type(printable, buff); break;
+		case B: disasemble_b_type(printable, buff); break; //b is for bad cause this one is the uggliest
+		case U: disasemble_u_type(printable, buff); break;
+		case J: disasemble_j_type(printable, buff); break;
 		default: printf("Type undefined.\n"); exit(0);
 	}	
 }
@@ -765,7 +780,6 @@ int32_t add_i_imediate_weird(int32_t instruction, int32_t im) {
 	instruction += im << 25;
 	return instruction;
 }
-
 int32_t get_i_type_funct_3(riscv_instruction type) {
 	switch (type) {
 		case ADDI: return 0x0;
@@ -853,43 +867,43 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 			result = add_rs2(result, instruction.reg_two);
 			switch (instruction.instruction) {
 				case ADD:
-					result = add_funct3(result, 0x00);
+					result = add_funct3(result, 0x0);
 					result = add_funct7(result, 0x00);
 					break;
 				case SUB:
-					result = add_funct3(result, 0x00);
+					result = add_funct3(result, 0x0);
 					result = add_funct7(result, 0x20);
 					break;
 				case XOR:
-					result = add_funct3(result, 0x40);
+					result = add_funct3(result, 0x4);
 					result = add_funct7(result, 0x00);
 					break;
 				case OR:
-					result = add_funct3(result, 0x60);
+					result = add_funct3(result, 0x6);
 					result = add_funct7(result, 0x00);
 					break;
 				case AND:
-					result = add_funct3(result, 0x70);
+					result = add_funct3(result, 0x7);
 					result = add_funct7(result, 0x00);
 					break;
 				case SLL:
-					result = add_funct3(result, 0x10);
+					result = add_funct3(result, 0x1);
 					result = add_funct7(result, 0x00);
 					break;
 				case SRL:
-					result = add_funct3(result, 0x50);
+					result = add_funct3(result, 0x5);
 					result = add_funct7(result, 0x00);
 					break;
 				case SRA:
-					result = add_funct3(result, 0x50);
+					result = add_funct3(result, 0x5);
 					result = add_funct7(result, 0x20);
 					break;
 				case SLT:
-					result = add_funct3(result, 0x20);
+					result = add_funct3(result, 0x2);
 					result = add_funct7(result, 0x00);
 					break;
 				case SLTU:
-					result = add_funct3(result, 0x30);
+					result = add_funct3(result, 0x3);
 					result = add_funct7(result, 0x00);
 					break;
 				default: printf("R type instruction not recognized.\n"); exit(0);
@@ -958,13 +972,40 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 	return result;
 }
 
-int main() {
-	char * source = "add r1, r2, r3";
-	int32_t encoded = encode_instruction(get_tokenized_instruction(source));
+void test_asm(char * source) {
+	char destination[100];
+	tokenized_instruction instr = get_tokenized_instruction(source);
+	int32_t encoded = encode_instruction(instr);
 	instruction * decoded = decode_instruction(encoded);
-	printf("%s \n",source);
-	disasemble_instruction(decoded);
+	disasemble_instruction(decoded, destination);
+	if (strcmp(source, destination) == 0) {
+		printf("Passed test %s",source);
+	} else {
+		printf("Failed test %s\n",source);
+		printf("Input: .%s.\n",source);
+		printf("Output: .%s.\n",destination);
+		print_instruction(decoded);
+		free(decoded);
+		exit(0);
+	}
+}
 
+void test_r_types() {
+	char buff[100];
+	char *ops[] = {"add", "sub", "xor", "or", "and", "sll", "srl", "sra", "slt", "sltu", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops[i] != NULL) {
+			sprintf(buff, "%s r%d, r%d, r%d\n", ops[i], rand()%32, rand()%32, rand()%32);
+			test_asm(buff);	
+			i++;
+		}
+	}
+}
+
+int main() {
+	test_r_types();
+	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
 	//free(new_instruction);
