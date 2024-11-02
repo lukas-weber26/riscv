@@ -683,16 +683,17 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 				check_reg(input_line);
 				new_instruction.reg_one = get_reg_from_char(input_line);
 			} else {
-				new_instruction.reg_one = 0;
-				if (new_instruction.instruction == ECALL) {
-					new_instruction.imediate= 0x0;
-				} else {
-					new_instruction.imediate= 0x1;
-				}
-				printf("S type error!\n");
+				printf("Horrible error\n");
 				exit(0);
 			}
-		} //outer if is for weird instructions (ecall ebreak)
+		} else {
+			new_instruction.reg_one = 0;
+			if (new_instruction.instruction == ECALL) {
+				new_instruction.imediate = 0x0;
+			} else {
+				new_instruction.imediate = 0x1;
+			}
+		}
 	} else if (new_instruction.major_type == J || new_instruction.major_type == U) {
 			check_reg(input_line);
 			new_instruction.reg_dest = get_reg_from_char(input_line);
@@ -858,7 +859,7 @@ int32_t add_j_imediate(int32_t result, int32_t imediate) {
 }
 
 int32_t encode_instruction(tokenized_instruction instruction) {
-	int32_t result = 0;
+	int32_t result = 0b00000000000000000000000000000000;
 	switch (instruction.major_type) {
 		case R:
 			result = add_opcode(result, 0b0110011);
@@ -931,10 +932,10 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 				result = add_funct3(result, get_i_type_funct_3(instruction.instruction));
 			} else if (i_type_three(instruction.instruction)) {
 				result = add_opcode(result, 0b1110011);
-				result = add_rd(result, instruction.reg_dest);
-				result = add_rs1(result, instruction.reg_one);
-				result = add_i_imediate(result, instruction.imediate);
+				//result = add_rd(result, instruction.reg_dest);
+				//result = add_rs1(result, instruction.reg_one);
 				result = add_funct3(result, get_i_type_funct_3(instruction.instruction));
+				result = add_i_imediate(result, instruction.imediate);
 			} else {
 				printf("Horrible error turning instruction into int32.\n"); exit(0);
 			}
@@ -1006,25 +1007,25 @@ void test_r_types() {
 
 void test_i_types() {
 	char buff[100];
-	//char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", NULL};
-	//for (int j= 0; j < 1000; j++) {
-	//	int i = 0; 
-	//	while (ops[i] != NULL) {
-	//		sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
-	//		test_asm(buff);	
-	//		i++;
-	//	}
-	//}
-	//
-	//char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
-	//for (int j= 0; j < 1000; j++) {
-	//	int i = 0; 
-	//	while (ops2[i] != NULL) {
-	//		sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
-	//		test_asm(buff);	
-	//		i++;
-	//	}
-	//}
+	char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops[i] != NULL) {
+			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
+			test_asm(buff);	
+			i++;
+		}
+	}
+	
+	char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops2[i] != NULL) {
+			sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
+			test_asm(buff);	
+			i++;
+		}
+	}
 	
 	sprintf(buff, "ecall\n");
 	test_asm(buff);	
