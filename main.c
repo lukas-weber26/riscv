@@ -213,7 +213,7 @@ void disasemble_i_type(instruction * source, char * buff) {
 		}
 	} else if (source->opcode == 0b1100111) {
 		if (source->funct3 == 0x0) {
-			sprintf(buff, "jalr r%d, %x(r%d)\n", source->rd, source->im1, source->rs1);
+			sprintf(buff, "jalr r%d, r%d, %d\n", source->rd, source->rs1, source->im1);
 		} else {
 			printf("Unsuported funct3 in i type disasembler: %x\n", source->funct3);
 		}
@@ -1040,7 +1040,7 @@ void test_r_types() {
 
 void test_i_types() {
 	char buff[100];
-	char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", NULL};
+	char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", "jalr", NULL};
 	for (int j= 0; j < 1000; j++) {
 		int i = 0; 
 		while (ops[i] != NULL) {
@@ -1093,11 +1093,15 @@ void test_b_types() {
 	}
 }
 
+void test_u_and_j_types() {
+
+}
+
 int main() {
 	//test_s_types();
-	//test_i_types();
+	test_i_types();
 	//test_r_types();
-	test_b_types();
+	//test_b_types();
 	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
