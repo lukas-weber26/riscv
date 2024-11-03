@@ -102,7 +102,7 @@ void resolve_i_type(instruction * new_instruction) {
 	new_instruction->rd = shift_and_mask(new_instruction, 0b11111, 7);
 	new_instruction->funct3 = shift_and_mask(new_instruction, 0b111, 12);
 	new_instruction->rs1 = shift_and_mask(new_instruction, 0b11111, 15);
-	new_instruction->im1= shift_and_mask(new_instruction, 0b111111111111, 20);
+	new_instruction->im1= extend_from_n(shift_and_mask(new_instruction, 0b111111111111, 20), 12);
 }
 
 void resolve_s_type(instruction * new_instruction) {
@@ -131,11 +131,10 @@ void resolve_u_type(instruction * new_instruction) {
 
 void resolve_j_type(instruction * new_instruction) {
 	new_instruction->rd = shift_and_mask(new_instruction, 0b11111, 7);
-	
 	new_instruction -> im4 = shift_and_mask(new_instruction, 0b1, 31);
 	new_instruction -> im3 = shift_and_mask(new_instruction, 0b1111111111, 21);
 	new_instruction -> im2 = shift_and_mask(new_instruction, 0b1, 20);
-	new_instruction -> im1 = shift_and_mask(new_instruction, 0b1111111, 12);
+	new_instruction -> im1 = shift_and_mask(new_instruction, 0b11111111, 12);
 
 }
 
@@ -309,7 +308,7 @@ void disasemble_u_type(instruction * source, char * buff) {
 
 void disasemble_j_type(instruction * source, char * buff) {
 	if (source->opcode == 0b1101111) {
-		int imediate = (source->im1 << 12) + (source->im2 << 11) + (source->im3 << 1) + (source->im4 << 20); 
+		int imediate = extend_from_n((source->im1 << 12) + (source->im2 << 11) + (source->im3 << 1) + (source->im4 << 20), 20); 
 		sprintf(buff, "jal r%d, %d\n", source -> rd, imediate);
 	} else { 
 		printf("Invalid U type instruction.\n");
@@ -389,7 +388,7 @@ void riscv_instruction_print(riscv_instruction i) {
 		case ADDI: printf("addi "); break;
 		case XORI: printf("xori "); break;
 		case ORI: printf("ori "); break;
-		case ANDI: printf("addi "); break;
+		case ANDI: printf("andi "); break;
 		case SLLI: printf("slli "); break;
 		case SRLI: printf("srli "); break;
 		case SRAI: printf("srai "); break;
@@ -739,9 +738,9 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 				input_line = eat_space(input_line);
 				check_valid(input_line);
 				check_im(input_line);
-				new_instruction.imediate= get_im_from_char(input_line);
+				new_instruction.imediate= reduce_to_n(get_im_from_char(input_line),12);
 			} else if (is_im(input_line)) {
-				new_instruction.imediate= get_im_from_char(input_line);
+				new_instruction.imediate= reduce_to_n(get_im_from_char(input_line),12);
 				input_line = eat_token(input_line);
 				input_line = eat_space(input_line);
 				check_valid(input_line);
@@ -784,14 +783,14 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 			input_line = eat_token(input_line);
 			input_line = eat_space(input_line);
 			check_valid(input_line);
-			new_instruction.imediate= get_im_from_char(input_line);
+			new_instruction.imediate= reduce_to_n(get_im_from_char(input_line), 20);
 	} else if (new_instruction.major_type == U) {
 			check_reg(input_line);
 			new_instruction.reg_dest = get_reg_from_char(input_line);
 			input_line = eat_token(input_line);
 			input_line = eat_space(input_line);
 			check_valid(input_line);
-			new_instruction.imediate= get_im_from_char(input_line);
+			new_instruction.imediate = get_im_from_char(input_line);
 	}
 	
 
@@ -879,7 +878,7 @@ int32_t get_i_type_funct_3(riscv_instruction type) {
 		case ADDI: return 0x0;
 		case XORI: return 0x4;
 		case ORI:return 0x6;
-		case ANDI:return 0x8;
+		case ANDI:return 0x7;
 		case SLLI:return 0x1;
 		case SRLI:return 0x5;
 		case SRAI:return 0x5;
@@ -1056,7 +1055,7 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 				exit(0);
 			}
 			result = add_rd(result, instruction.reg_dest);
-			result = add_u_imediate(result, instruction.imediate);
+			result = add_u_imediate(result, instruction.imediate); 
 			break;
 		case J:	
 			result = add_opcode(result, 0b1101111);
@@ -1104,31 +1103,41 @@ void test_r_types() {
 
 void test_i_types() {
 	char buff[100];
-	char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", "jalr", NULL};
+	char *ops[] = {"jalr", "addi", "xori", "ori", "andi", "slti", "sltiu", NULL};
 	for (int j= 0; j < 1000; j++) {
 		int i = 0; 
 		while (ops[i] != NULL) {
-			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
+			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, (rand()%2048 - 1024));
 			test_asm(buff);	
 			i++;
 		}
 	}
-	
+
 	char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
 	for (int j= 0; j < 1000; j++) {
 		int i = 0; 
 		while (ops2[i] != NULL) {
-			sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
+			sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, (rand()%2048 - 1024), rand()%32);
 			test_asm(buff);	
 			i++;
 		}
 	}
-	
 	sprintf(buff, "ecall\n");
 	test_asm(buff);	
 	
 	sprintf(buff, "ebreak\n");
 	test_asm(buff);	
+
+	//seperate because negative shifts are not suported!
+	char *ops3[] = {"slli", "srai", "srli",NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops3[i] != NULL) {
+			sprintf(buff, "%s r%d, r%d, %d\n", ops3[i], rand()%32, rand()%32, rand()%32);
+			test_asm(buff);	
+			i++;
+		}
+	}
 }
 
 void test_s_types() {
@@ -1161,7 +1170,7 @@ void test_b_types() {
 void test_u_and_j_types() {
 	//u types: 
 	char buff[100];
-	char *ops[] = {"jal","lui", "auipc", NULL};
+	char *ops[] = {"lui", "auipc", NULL};
 	for (int j= 0; j < 1000; j++) {
 		int i = 0; 
 		while (ops[i] != NULL) {
@@ -1170,15 +1179,18 @@ void test_u_and_j_types() {
 			i++;
 		}
 	}
+
+	sprintf(buff, "jal r%d, %d\n", rand()%32, -10);
+	test_asm(buff);	
 	
 }
 
 int main() {
-	//test_b_types();
-	//test_s_types();
-	//test_i_types();
+	test_b_types();
+	test_s_types();
+	test_i_types();
 	//test_r_types();
-	//test_u_and_j_types();
+	test_u_and_j_types();
 	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);
 	//disasemble_instruction(new_instruction);
