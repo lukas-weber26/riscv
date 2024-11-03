@@ -2,6 +2,56 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+
+int32_t powi(int base, int top) {
+	assert(base > 0);
+	assert(top >= 2);	
+	long int count = base;
+	for (int i = 1; i < top; i++) {
+		count *= base;
+	}
+	return count;
+}
+
+int32_t signed_max(int bits) {
+	int32_t max = powi(2,(bits-1)) - 1;
+	return max;
+}
+
+int32_t signed_min(int bits) {
+	int32_t min = -powi(2, bits-1); 
+	return min;
+}
+
+int32_t enforce_bit_rep(int32_t input, int n) {
+	int32_t output = input & (powi(2,n) -1); 
+	return output;
+}
+
+int32_t reduce_to_n(int32_t input, int n) {
+	int32_t output = 0;
+	int32_t max = signed_max(n);	
+	int32_t min = signed_min(n);	
+
+	assert(input <= max);
+	assert(input >= min);
+
+	output = input & (powi(2,n) -1); 
+
+	return output;
+}
+
+int32_t extend_from_n(int32_t input, int n) {
+	int32_t output = input;
+
+	if (((output >> (n - 1)) & 1) == 1)  { //make this dependent on n
+		//negative case
+		output = output | ((-1) & (~(powi(2,n)-1)));
+	}
+
+	return output;
+}
 
 //binary print from geeksforgeeks
 void print_binary(int32_t n)
@@ -232,7 +282,8 @@ void disasemble_s_type(instruction * source, char * buff) {
 }
 
 void disasemble_b_type(instruction * source, char * buff) {
-	int imediate = (source->im1 << 11) + (source->im2 << 1) + (source->im3 << 5) + (source->im4 << 12);
+	int32_t raw_im = (source->im1 << 11) + (source->im2 << 1) + (source->im3 << 5) + (source->im4 << 12);
+	int32_t imediate = extend_from_n(raw_im, 13);
 	switch(source->funct3) {
 		case 0x0: sprintf(buff, "beq r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
 		case 0x1: sprintf(buff, "bne r%d, r%d, %d\n", source -> rs1, source -> rs2, imediate); break;
@@ -673,7 +724,7 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 		input_line = eat_space(input_line);
 		check_valid(input_line);
 		check_im(input_line);
-		new_instruction.imediate= get_im_from_char(input_line);
+		new_instruction.imediate= reduce_to_n(get_im_from_char(input_line), 13); 
 	} else if (new_instruction.major_type == I) {
 		if (is_reg(input_line)) {	
 			check_reg(input_line);
@@ -827,7 +878,7 @@ int32_t get_i_type_funct_3(riscv_instruction type) {
 		case ADDI: return 0x0;
 		case XORI: return 0x4;
 		case ORI:return 0x6;
-		case ANDI:return 0x7;
+		case ANDI:return 0x8;
 		case SLLI:return 0x1;
 		case SRLI:return 0x5;
 		case SRAI:return 0x5;
@@ -880,7 +931,7 @@ int32_t add_s_imediate(int32_t result, int32_t imediate) {
 int32_t add_b_imediate(int32_t result, int32_t imediate) {
 	result += (shift_and_mask_simple(imediate, 0b1, 11)) << 7;
 	result += (shift_and_mask_simple(imediate, 0b1111, 1)) << 8;
-	result += (shift_and_mask_simple(imediate, 0b1111111, 5)) << 25;
+	result += (shift_and_mask_simple(imediate, 0b111111, 5)) << 25;
 	result += (shift_and_mask_simple(imediate, 0b1, 12)) << 31;
 	return result;
 }
@@ -1019,6 +1070,8 @@ int32_t encode_instruction(tokenized_instruction instruction) {
 void test_asm(char * source) {
 	char destination[100];
 	tokenized_instruction instr = get_tokenized_instruction(source);
+	printf("%d\n", instr.imediate);
+	printf("%d\n", extend_from_n(instr.imediate,13));
 	int32_t encoded = encode_instruction(instr);
 	instruction * decoded = decode_instruction(encoded);
 	disasemble_instruction(decoded, destination);
@@ -1049,35 +1102,31 @@ void test_r_types() {
 }
 
 void test_i_types() {
-	//char buff[100];
-	//char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", "jalr", NULL};
-	//for (int j= 0; j < 1000; j++) {
-	//	int i = 0; 
-	//	while (ops[i] != NULL) {
-	//		sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
-	//		test_asm(buff);	
-	//		i++;
-	//	}
-	//}
-	//
-	//char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
-	//for (int j= 0; j < 1000; j++) {
-	//	int i = 0; 
-	//	while (ops2[i] != NULL) {
-	//		sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
-	//		test_asm(buff);	
-	//		i++;
-	//	}
-	//}
-	//
-	//sprintf(buff, "ecall\n");
-	//test_asm(buff);	
-	//
-	//sprintf(buff, "ebreak\n");
-	//test_asm(buff);	
-
 	char buff[100];
-	sprintf(buff, "addi r1, r2, -10\n");
+	char *ops[] = {"addi", "xori", "ori", "andi", "slti", "sltiu", "slli", "srai", "srli", "jalr", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops[i] != NULL) {
+			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, rand()%16);
+			test_asm(buff);	
+			i++;
+		}
+	}
+	
+	char *ops2[] = {"lb", "lh", "lw", "lbu", "lhu", NULL};
+	for (int j= 0; j < 1000; j++) {
+		int i = 0; 
+		while (ops2[i] != NULL) {
+			sprintf(buff, "%s r%d, %d(r%d)\n", ops2[i], rand()%32, rand()%2048, rand()%32);
+			test_asm(buff);	
+			i++;
+		}
+	}
+	
+	sprintf(buff, "ecall\n");
+	test_asm(buff);	
+	
+	sprintf(buff, "ebreak\n");
 	test_asm(buff);	
 }
 
@@ -1100,11 +1149,12 @@ void test_b_types() {
 	for (int j= 0; j < 1000; j++) {
 		int i = 0; 
 		while (ops[i] != NULL) {
-			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, (rand()%1024)*2);
+			sprintf(buff, "%s r%d, r%d, %d\n", ops[i], rand()%32, rand()%32, (rand()%1024)*2 - 1024);
 			test_asm(buff);	
 			i++;
 		}
 	}
+
 }
 
 void test_u_and_j_types() {
@@ -1123,10 +1173,10 @@ void test_u_and_j_types() {
 }
 
 int main() {
-	//test_s_types();
-	test_i_types();
-	//test_r_types();
 	//test_b_types();
+	//test_s_types();
+	//test_i_types();
+	//test_r_types();
 	//test_u_and_j_types();
 	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);

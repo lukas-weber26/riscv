@@ -23,35 +23,6 @@ int32_t signed_min(int bits) {
 	return min;
 }
 
-int32_t reduce_to_12(int32_t input) {
-	int32_t output = 0;
-	int32_t max = signed_max(12);	
-	int32_t min = signed_min(12);	
-
-	assert(input <= max);
-	assert(input >= min);
-
-	output = input & 0b111111111111; //not clear that anything actually has to be done
-
-	return output;
-}
-
-int32_t extend_from_12(int32_t input) {
-	int32_t output = input;
-
-	if (((output >> 11) & 1) == 1)  {
-		//negative case
-		output = output | 0b11111111111111111111000000000000;
-	}
-
-	return output;
-}
-
-int32_t enforce_12_bit_rep(int32_t input) {
-	int32_t output = input & 0b111111111111;
-	return output;
-}
-
 int32_t reduce_to_n(int32_t input, int n) {
 	int32_t output = 0;
 	int32_t max = signed_max(n);	
@@ -78,6 +49,35 @@ int32_t extend_from_n(int32_t input, int n) {
 
 int32_t enforce_bit_rep(int32_t input, int n) {
 	int32_t output = input & (powi(2,n) -1); 
+	return output;
+}
+
+int32_t reduce_to_12(int32_t input) {
+	int32_t output = 0;
+	int32_t max = signed_max(12);	
+	int32_t min = signed_min(12);	
+
+	assert(input <= max);
+	assert(input >= min);
+
+	output = input & 0b111111111111; //not clear that anything actually has to be done
+
+	return output;
+}
+
+int32_t extend_from_12(int32_t input) {
+	int32_t output = input;
+
+	if (((output >> 11) & 1) == 1)  {
+		//negative case
+		output = output | 0b11111111111111111111000000000000;
+	}
+
+	return output;
+}
+
+int32_t enforce_12_bit_rep(int32_t input) {
+	int32_t output = input & 0b111111111111;
 	return output;
 }
 
