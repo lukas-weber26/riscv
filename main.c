@@ -273,10 +273,11 @@ void disasemble_i_type(instruction * source, char * buff) {
 }
 
 void disasemble_s_type(instruction * source, char * buff) {
+	int32_t im = extend_from_n((source->im1 + (source->im2 << 5)),12);
 	switch(source->funct3) {
-		case 0x0: sprintf(buff, "sb r%d, %d(r%d)\n", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
-		case 0x1: sprintf(buff, "sh r%d, %d(r%d)\n", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
-		case 0x2: sprintf(buff, "sw r%d, %d(r%d)\n", source->rs2, (source->im1 + (source->im2 << 5)), source ->rs1); break;
+		case 0x0: sprintf(buff, "sb r%d, %d(r%d)\n", source->rs2, im, source ->rs1); break;
+		case 0x1: sprintf(buff, "sh r%d, %d(r%d)\n", source->rs2, im, source ->rs1); break;
+		case 0x2: sprintf(buff, "sw r%d, %d(r%d)\n", source->rs2, im, source ->rs1); break;
 		default: printf("Invalid S type instruction\n"); exit(0);
 	}
 }
@@ -767,7 +768,7 @@ tokenized_instruction get_tokenized_instruction(char * input_line) {
 			input_line = eat_space(input_line);
 			check_valid(input_line);
 			check_im(input_line);	
-			new_instruction.imediate= get_im_from_char(input_line);
+			new_instruction.imediate= reduce_to_n(get_im_from_char(input_line),12);
 			input_line = eat_token(input_line);
 			input_line = eat_space(input_line);
 			check_valid(input_line);
@@ -1136,7 +1137,7 @@ void test_s_types() {
 	for (int j= 0; j < 1000; j++) {
 		int i = 0; 
 		while (ops[i] != NULL) {
-			sprintf(buff, "%s r%d, %d(r%d)\n", ops[i], rand()%32, rand()%1024, rand()%32);
+			sprintf(buff, "%s r%d, %d(r%d)\n", ops[i], rand()%32, (rand()%2024)-1012, rand()%32); //rand()%1024
 			test_asm(buff);	
 			i++;
 		}
