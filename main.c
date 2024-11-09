@@ -1185,11 +1185,175 @@ void test_u_and_j_types() {
 	
 }
 
+typedef struct cpu_state {
+	uint32_t registers[32];
+	uint32_t *memory;
+	uint32_t memsize;
+	uint32_t pc;
+	//instruction pointer and so on to come	
+} cpu_state;
+
+cpu_state cpu_create(uint32_t memsize) {
+	cpu_state new_state;
+	new_state.memory = malloc(sizeof(char) * memsize);
+	new_state.memsize = memsize * sizeof(char);
+	new_state.pc = 0;
+	for (int i = 0; i < 32; i++) {
+		new_state.registers[i] = 0;
+	}	
+	return new_state;
+}
+
+void cpu_delete(cpu_state cpu) {
+	free(cpu.memory);
+}
+		
+cpu_state execute_r_type(cpu_state state, instruction inst) {
+	//problems:
+	//1. don't know wha tmsb extends means
+	//2. don't konw what zero extends means in the context of the last instruction
+	uint32_t op1 = state.registers[inst.rs1];
+	uint32_t op2 = state.registers[inst.rs2];
+	uint32_t op3;
+	if (inst.opcode == 0b0110011) {
+		switch(inst.funct3) {
+			case 0x0:
+				if (inst.funct7 == 0x00) { op3 = op1+op2; } 
+				else if (inst.funct7 == 0x20) { op3 = op1 - op2;} 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			case 0x4:
+				if (inst.funct7 == 0x00) { op3 = op1 ^ op2;} 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			case 0x6:
+				if (inst.funct7 == 0x00) { op3 = op1 | op2;} 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			case 0x7:
+				if (inst.funct7 == 0x00) { op3 = op1 & op2;} 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			case 0x1:
+				if (inst.funct7 == 0x00) { op3 = op1 << op2;} 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			case 0x5:
+				if (inst.funct7 == 0x00) { op3 = op1 >> op2;} 
+				else if (inst.funct7 == 0x20) { op3 = op1 >> op2;} //msb extends? 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			case 0x2:
+				if (inst.funct7 == 0x00) { op3 = (op1 < op2? 1 : 0);} 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			case 0x3:
+				if (inst.funct7 == 0x00) { op3 = (op1 < op2? 1: 0);} 
+				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
+				break;
+			default: printf("Unsuported func 3 value in r type execution: %x\n", inst.funct3); exit(0);
+		}
+	} else {
+		printf("Unsuported type\n");
+		exit(0);
+	}
+	state.registers[inst.rd] = op3;
+	state.pc ++;
+	return state;
+}
+
+cpu_state execute_i_type(cpu_state initial_state, instruction input_instruction){}
+
+cpu_state execute_s_type(cpu_state state, instruction inst){
+	cpu_state result = state;
+	int32_t im = extend_from_n((inst.im1 + (inst.im2 << 5)),12);
+	int32_t op1 = state.registers[inst.rs1];
+	int32_t op2 = state.registers[inst.rs2];
+	uint32_t out;
+	 	
+	switch(inst.funct3) {
+		case 0x0: out = (uint8_t)op2; break;
+		case 0x1: out = (uint16_t)op2; break;
+		case 0x2: out = (uint32_t)op2; break;
+		default: printf("Invalid S type instruction execution\n"); exit(0);
+	}
+
+	result.memory[op1 + im] = out;
+	result.pc ++;
+	return result;	
+}
+
+cpu_state execute_b_type(cpu_state state, instruction inst){
+	//problems: last two instructions zero extend. unclear what that means in this context
+	cpu_state result = state;	
+	int32_t raw_im = (inst.im1 << 11) + (inst.im2 << 1) + (inst.im3 << 5) + (inst.im4 << 12);
+	int32_t imediate = extend_from_n(raw_im, 13);
+	int32_t op1 = state.registers[inst.rs1];
+	int32_t op2 = state.registers[inst.rs2];
+
+	switch(inst.funct3) {
+		case 0x0: if (op1 == op2) {result.pc += imediate;} break;
+		case 0x1: if (op1 != op2) {result.pc += imediate;} break;
+		case 0x4: if (op1 < op2) {result.pc += imediate;} break;
+		case 0x5: if (op1 >= op2) {result.pc += imediate;} break;
+		case 0x6: if (op1 < op2) {result.pc += imediate;} break;  //unclear what zero extends means here
+		case 0x7: if (op1 >= op2) {result.pc += imediate;} break; //unclear what zero extends means here
+		default: printf("Invalid B type instruction\n"); exit(0);
+	}
+
+	return result;
+}
+
+
+cpu_state execute_u_type(cpu_state state, instruction inst){
+	cpu_state result = state;	
+	int32_t out; 
+
+	if (inst.opcode == 0b0110111) {
+		out = inst.im1 << 12;
+	} else if (inst.opcode == 0b0010111) {
+		out = state.pc + (inst.im1 << 12);
+	} else { 
+		printf("Invalid U type instruction.\n");
+		exit(0);
+	}
+
+	result.registers[inst.rd] = out;
+	result.pc ++;
+	return result; 
+}
+
+cpu_state execute_j_type(cpu_state state, instruction instruction){
+	if (source->opcode == 0b1101111) {
+		int imediate = extend_from_n((source->im1 << 12) + (source->im2 << 11) + (source->im3 << 1) + (source->im4 << 20), 20); 
+		sprintf(buff, "jal r%d, %d\n", source -> rd, imediate);
+	} else { 
+		printf("Invalid U type instruction.\n");
+		exit(0);
+	}
+} 
+
+cpu_state execute_instruction(cpu_state initial_state, instruction input_instruction) {
+	cpu_state result_state; 
+
+	switch (input_instruction.type) {
+		case R: result_state = execute_r_type(initial_state, input_instruction); break;
+		case I: result_state = execute_i_type(initial_state, input_instruction); break;
+		case S: result_state = execute_s_type(initial_state, input_instruction); break;
+		case B: result_state = execute_b_type(initial_state, input_instruction); break; 
+		case U: result_state = execute_u_type(initial_state, input_instruction); break;
+		case J: result_state = execute_j_type(initial_state, input_instruction); break;
+		default: printf("Execution type undefined.\n"); exit(0);
+	}	
+		
+	return result_state;	
+}
+
 int main() {
 	test_b_types();
 	test_s_types();
 	test_i_types();
-	//test_r_types();
+	test_r_types();
 	test_u_and_j_types();
 	//test_asm("add r1, r2, r3\n");
 	//print_instruction(new_instruction);
