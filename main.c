@@ -1486,10 +1486,11 @@ void test_run_from_mem() {
 	cpu_state test_state = cpu_create(1024);
 
 	char * program [] = {
-	"addi r0, r1, 10",
-	"addi r0, r1, 10",
-	"addi r0, r1, 10",
-	"addi r0, r1, 10",
+	"addi r1, r1, 10",
+	"addi r2, r2, 20",
+	"add r0, r1, r2",
+	"sw r0 100(r5)", 
+	"lw r3 100(r5)", 
 	NULL
 	};
 
