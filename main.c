@@ -1271,19 +1271,19 @@ cpu_state execute_i_type(cpu_state state, instruction inst) {
 	int32_t output;
 	if (inst.opcode == 0b0010011) {
 		switch(inst.funct3) {
-			case 0x0: output = rs1 + inst.im1; break;
-			case 0x4: output = rs1 ^ inst.im1; break; 
-			case 0x6: output = rs1 | inst.im1; break;
-			case 0x7: output = rs1 & inst.im1; break;
+			case 0x0: output = state.registers[rs1] + inst.im1; break;
+			case 0x4: output = state.registers[rs1] ^ inst.im1; break; 
+			case 0x6: output = state.registers[rs1] | inst.im1; break;
+			case 0x7: output = state.registers[rs1] & inst.im1; break;
 			case 0x1:
 				if (((inst.im1 >> 5) & 0b1111111) == 0x00) {
-					output = rs1 << inst.im1; break;
+					output = state.registers[rs1] << inst.im1; break;
 				} else {printf("Unsuported imediate in i type.\n"); exit(0);}
 			case 0x5:
 				if (((inst.im1 >> 5) & 0b1111111) == 0x00) {
-					output = rs1 >> inst.im1; break;
+					output = state.registers[rs1] >> inst.im1; break;
 				} else if (((inst.im1 >> 5) & 0b1111111) == 0x20) {
-					output = rs1 >> inst.im1; break;
+					output = state.registers[rs1] >> inst.im1; break;
 				} else {printf("Unsuported imediate in special i type.\n"); exit(0);}
 			case 0x2: output = (rs1 < inst.im1) ? 1 : 0;
 			case 0x3: output = (rs1 < inst.im1) ? 1 : 0;
@@ -1295,11 +1295,11 @@ cpu_state execute_i_type(cpu_state state, instruction inst) {
 	} else if (inst.opcode == 0b0000011) {
 		int32_t data;
 		switch(inst.funct3) {
-			case 0x0: data = (uint8_t)state.memory[inst.rs1 + inst.im1]; break;
-			case 0x1: data = (uint16_t)state.memory[inst.rs1 + inst.im1]; break;
-			case 0x2: data = (uint32_t)state.memory[inst.rs1 + inst.im1]; break;
-			case 0x4: data = (uint8_t)state.memory[inst.rs1 + inst.im1]; break;
-			case 0x5: data = (uint16_t)state.memory[inst.rs1 + inst.im1]; break;
+			case 0x0: data = (uint8_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
+			case 0x1: data = (uint16_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
+			case 0x2: data = (uint32_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
+			case 0x4: data = (uint8_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
+			case 0x5: data = (uint16_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
 			default: printf("Unsuported func 3 value in i type disasembler: %x\n", inst.funct3); exit(0);
 		}
 		state.pc ++;
@@ -1324,11 +1324,16 @@ cpu_state execute_i_type(cpu_state state, instruction inst) {
 	} else if (inst.opcode == 0b1100111) {
 		if (inst.funct3 == 0x0) {
 			//sprintf(buff, "jalr r%d, r%d, %d\n", inst.rd, inst.rs1, inst.im1);
+			state.registers[inst.rd] = state.pc+4;		
+			state.pc = state.registers[inst.rs1] + inst.im1;
+			return state;
 		} else {
 			printf("Unsuported funct3 in i type disasembler: %x\n", inst.funct3);
+			exit(0);
 		}
 	} else {
 		printf("Unsuported opcode in i type disasembler: %x\n", inst.funct3);
+		exit(0);
 	}
 }
 
