@@ -1217,9 +1217,6 @@ void cpu_delete(cpu_state cpu) {
 }
 		
 cpu_state execute_r_type(cpu_state state, instruction inst) {
-	//problems:
-	//1. don't know wha tmsb extends means
-	//2. don't konw what zero extends means in the context of the last instruction
 	uint32_t op1 = state.registers[inst.rs1];
 	uint32_t op2 = state.registers[inst.rs2];
 	uint32_t op3;
@@ -1247,16 +1244,16 @@ cpu_state execute_r_type(cpu_state state, instruction inst) {
 				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
 				break;
 			case 0x5:
-				if (inst.funct7 == 0x00) { op3 = op1 >> op2;} 
-				else if (inst.funct7 == 0x20) { op3 = op1 >> op2;} //msb extends? 
+				if (inst.funct7 == 0x00) { op3 = (uint32_t)((uint32_t)op1 >> op2);} 
+				else if (inst.funct7 == 0x20) { op3 = (int32_t)((int32_t)op1 >> op2);} //msb extends? 
 				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
 				break;
 			case 0x2:
-				if (inst.funct7 == 0x00) { op3 = (op1 < op2? 1 : 0);} 
+				if (inst.funct7 == 0x00) { op3 = ((int32_t)op1 < (int32_t)op2? 1 : 0);} 
 				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
 				break;
 			case 0x3:
-				if (inst.funct7 == 0x00) { op3 = (op1 < op2? 1: 0);} 
+				if (inst.funct7 == 0x00) { op3 = ((uint32_t)op1 < (uint32_t)op2? 1: 0);} 
 				else {printf("Unsuported funct 7: %x", inst.funct7); exit(0);}
 				break;
 			default: printf("Unsuported func 3 value in r type execution: %x\n", inst.funct3); exit(0);
@@ -1271,10 +1268,6 @@ cpu_state execute_r_type(cpu_state state, instruction inst) {
 }
 
 cpu_state execute_i_type(cpu_state state, instruction inst) {
-	//problems: unclear what msb extends means
-	//unclear what zero extends means in this context
-	//unclear what zero extends means for loading
-	//ecall and ebreak do not really make much sense yet
 	int32_t rs1 = state.registers[inst.rs1];
 	int32_t output;
 	if (inst.opcode == 0b0010011) {
@@ -1289,12 +1282,12 @@ cpu_state execute_i_type(cpu_state state, instruction inst) {
 				} else {printf("Unsuported imediate in i type.\n"); exit(0);}
 			case 0x5:
 				if (((inst.im1 >> 5) & 0b1111111) == 0x00) {
-					output = state.registers[rs1] >> inst.im1; break;
+					output = (uint32_t)((uint32_t)state.registers[rs1] >> (uint32_t)inst.im1); break;
 				} else if (((inst.im1 >> 5) & 0b1111111) == 0x20) {
-					output = state.registers[rs1] >> inst.im1; break;
+					output = (int32_t)((int32_t)state.registers[rs1] >> (int32_t)inst.im1); break;
 				} else {printf("Unsuported imediate in special i type.\n"); exit(0);}
-			case 0x2: output = (rs1 < inst.im1) ? 1 : 0;
-			case 0x3: output = (rs1 < inst.im1) ? 1 : 0;
+			case 0x2: output = ((int32_t)rs1 < (int32_t)inst.im1) ? 1 : 0;
+			case 0x3: output = ((uint32_t)rs1 < (uint32_t)inst.im1) ? 1 : 0;
 			default: printf("Unsuported func 3 value in i type disasembler: %x\n", inst.funct3); exit(0);
 		}
 		state.pc ++;
@@ -1303,9 +1296,9 @@ cpu_state execute_i_type(cpu_state state, instruction inst) {
 	} else if (inst.opcode == 0b0000011) {
 		int32_t data;
 		switch(inst.funct3) {
-			case 0x0: data = (uint8_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
-			case 0x1: data = (uint16_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
-			case 0x2: data = (uint32_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
+			case 0x0: data = extend_from_n(state.memory[state.registers[inst.rs1] + inst.im1],8); break;
+			case 0x1: data = extend_from_n(state.memory[state.registers[inst.rs1] + inst.im1],16); break;
+			case 0x2: data = state.memory[state.registers[inst.rs1] + inst.im1]; break;
 			case 0x4: data = (uint8_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
 			case 0x5: data = (uint16_t)state.memory[state.registers[inst.rs1] + inst.im1]; break;
 			default: printf("Unsuported func 3 value in i type disasembler: %x\n", inst.funct3); exit(0);
@@ -1365,7 +1358,6 @@ cpu_state execute_s_type(cpu_state state, instruction inst){
 }
 
 cpu_state execute_b_type(cpu_state state, instruction inst){
-	//problems: last two instructions zero extend. unclear what that means in this context
 	cpu_state result = state;	
 	int32_t raw_im = (inst.im1 << 11) + (inst.im2 << 1) + (inst.im3 << 5) + (inst.im4 << 12);
 	int32_t imediate = extend_from_n(raw_im, 13);
@@ -1377,8 +1369,8 @@ cpu_state execute_b_type(cpu_state state, instruction inst){
 		case 0x1: if (op1 != op2) {result.pc += imediate;} break;
 		case 0x4: if (op1 < op2) {result.pc += imediate;} break;
 		case 0x5: if (op1 >= op2) {result.pc += imediate;} break;
-		case 0x6: if (op1 < op2) {result.pc += imediate;} break;  //unclear what zero extends means here
-		case 0x7: if (op1 >= op2) {result.pc += imediate;} break; //unclear what zero extends means here
+		case 0x6: if ((uint32_t)op1 < (uint32_t)op2) {result.pc += imediate;} break; 
+		case 0x7: if ((uint32_t)op1 >= (uint32_t)op2) {result.pc += imediate;} break; 
 		default: printf("Invalid B type instruction\n"); exit(0);
 	}
 
@@ -1506,7 +1498,5 @@ int main() {
 	//test_assembly_disassembly();
 }
 
-//goal for today: be able to run some basic program...
-//maybe read programs from actual memory..?
-//maybe fix the weird ass instructions (ie ones that require msb extension on zero extension)
-//(msb stands for most significant bit extended... probably for signed stuff...)
+//next time: more serious testing of execution unit.
+//maybe enuring that the registers adhere to the abi rules
