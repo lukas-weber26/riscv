@@ -1262,7 +1262,75 @@ cpu_state execute_r_type(cpu_state state, instruction inst) {
 	return state;
 }
 
-cpu_state execute_i_type(cpu_state initial_state, instruction input_instruction){}
+cpu_state execute_i_type(cpu_state state, instruction inst) {
+	//problems: unclear what msb extends means
+	//unclear what zero extends means in this context
+	//unclear what zero extends means for loading
+	//ecall and ebreak do not really make much sense yet
+	int32_t rs1 = state.registers[inst.rs1];
+	int32_t output;
+	if (inst.opcode == 0b0010011) {
+		switch(inst.funct3) {
+			case 0x0: output = rs1 + inst.im1; break;
+			case 0x4: output = rs1 ^ inst.im1; break; 
+			case 0x6: output = rs1 | inst.im1; break;
+			case 0x7: output = rs1 & inst.im1; break;
+			case 0x1:
+				if (((inst.im1 >> 5) & 0b1111111) == 0x00) {
+					output = rs1 << inst.im1; break;
+				} else {printf("Unsuported imediate in i type.\n"); exit(0);}
+			case 0x5:
+				if (((inst.im1 >> 5) & 0b1111111) == 0x00) {
+					output = rs1 >> inst.im1; break;
+				} else if (((inst.im1 >> 5) & 0b1111111) == 0x20) {
+					output = rs1 >> inst.im1; break;
+				} else {printf("Unsuported imediate in special i type.\n"); exit(0);}
+			case 0x2: output = (rs1 < inst.im1) ? 1 : 0;
+			case 0x3: output = (rs1 < inst.im1) ? 1 : 0;
+			default: printf("Unsuported func 3 value in i type disasembler: %x\n", inst.funct3); exit(0);
+		}
+		state.pc ++;
+		state.registers[inst.rd] = output;
+		return state;
+	} else if (inst.opcode == 0b0000011) {
+		int32_t data;
+		switch(inst.funct3) {
+			case 0x0: data = (uint8_t)state.memory[inst.rs1 + inst.im1]; break;
+			case 0x1: data = (uint16_t)state.memory[inst.rs1 + inst.im1]; break;
+			case 0x2: data = (uint32_t)state.memory[inst.rs1 + inst.im1]; break;
+			case 0x4: data = (uint8_t)state.memory[inst.rs1 + inst.im1]; break;
+			case 0x5: data = (uint16_t)state.memory[inst.rs1 + inst.im1]; break;
+			default: printf("Unsuported func 3 value in i type disasembler: %x\n", inst.funct3); exit(0);
+		}
+		state.pc ++;
+		state.registers[inst.rd] = data;
+		return state;
+	} else if (inst.opcode == 0b1110011) {
+		if (inst.funct3 == 0x0) {
+			if (inst.im1 == 0x0) {
+				state.pc = 0;
+				return state;
+			} else if (inst.im1 == 0x1) {
+				state.pc = 0;
+				return state;
+			} else {
+			printf("Unsuported imediate value in i type disasembler: %x\n", inst.funct3);
+			exit(0);
+			}
+		} else {
+			printf("Unsuported func 3 value in i type disasembler: %x\n", inst.funct3);
+			exit(0);
+		}
+	} else if (inst.opcode == 0b1100111) {
+		if (inst.funct3 == 0x0) {
+			//sprintf(buff, "jalr r%d, r%d, %d\n", inst.rd, inst.rs1, inst.im1);
+		} else {
+			printf("Unsuported funct3 in i type disasembler: %x\n", inst.funct3);
+		}
+	} else {
+		printf("Unsuported opcode in i type disasembler: %x\n", inst.funct3);
+	}
+}
 
 cpu_state execute_s_type(cpu_state state, instruction inst){
 	cpu_state result = state;
@@ -1272,9 +1340,9 @@ cpu_state execute_s_type(cpu_state state, instruction inst){
 	uint32_t out;
 	 	
 	switch(inst.funct3) {
-		case 0x0: out = (uint8_t)op2; break;
-		case 0x1: out = (uint16_t)op2; break;
-		case 0x2: out = (uint32_t)op2; break;
+		case 0x0: out = (uint8_t)op2; uint8_t * outptr = (uint8_t*)&result.memory[op1 + im]; *outptr = (uint8_t)out; break;
+		case 0x1: out = (uint16_t)op2; uint16_t* outptr16 = (uint16_t*)&result.memory[op1 + im]; *outptr16 = (uint16_t)out; break;
+		case 0x2: out = (uint32_t)op2; uint32_t* outptr32 = (uint32_t*)&result.memory[op1 + im]; *outptr32 = (uint32_t)out; break;
 		default: printf("Invalid S type instruction execution\n"); exit(0);
 	}
 
@@ -1323,10 +1391,12 @@ cpu_state execute_u_type(cpu_state state, instruction inst){
 	return result; 
 }
 
-cpu_state execute_j_type(cpu_state state, instruction instruction){
-	if (source->opcode == 0b1101111) {
-		int imediate = extend_from_n((source->im1 << 12) + (source->im2 << 11) + (source->im3 << 1) + (source->im4 << 20), 20); 
-		sprintf(buff, "jal r%d, %d\n", source -> rd, imediate);
+cpu_state execute_j_type(cpu_state state, instruction inst){
+	if (inst.opcode == 0b1101111) {
+		int imediate = extend_from_n((inst.im1 << 12) + (inst.im2 << 11) + (inst.im3 << 1) + (inst.im4 << 20), 20); 
+		state.registers[inst.rd] = state.pc + 4;
+		state.pc += 4;
+		return state;
 	} else { 
 		printf("Invalid U type instruction.\n");
 		exit(0);
