@@ -1185,6 +1185,14 @@ void test_u_and_j_types() {
 	
 }
 
+void test_assembly_disassembly() {
+	test_b_types();
+	test_s_types();
+	test_i_types();
+	test_r_types();
+	test_u_and_j_types();
+}
+
 typedef struct cpu_state {
 	uint32_t registers[32];
 	uint32_t *memory;
@@ -1420,18 +1428,32 @@ cpu_state execute_instruction(cpu_state initial_state, instruction input_instruc
 		case J: result_state = execute_j_type(initial_state, input_instruction); break;
 		default: printf("Execution type undefined.\n"); exit(0);
 	}	
-		
 	return result_state;	
 }
 
-int main() {
-	test_b_types();
-	test_s_types();
-	test_i_types();
-	test_r_types();
-	test_u_and_j_types();
-	//test_asm("add r1, r2, r3\n");
-	//print_instruction(new_instruction);
-	//disasemble_instruction(new_instruction);
-	//free(new_instruction);
+void cpu_print_state(cpu_state state, int reg_cap) {
+	printf("Cpu PC: %d, Registers:\n", state.pc);
+	for (int i = 0; i < reg_cap && i < 32; i++) {
+		printf("R%i: %d\n", i, state.registers[i]);
+	}	
 }
+
+void test_execution() {
+	cpu_state test_state = cpu_create(1024);
+
+	cpu_print_state(test_state, 4);
+	test_state = execute_instruction(test_state, *decode_instruction(encode_instruction(get_tokenized_instruction("addi r0, r2, 10"))));
+	cpu_print_state(test_state, 4);
+
+	cpu_delete(test_state);
+}
+
+int main() {
+	test_execution();
+	//test_assembly_disassembly();
+}
+
+//goal for today: be able to run some basic program...
+//maybe read programs from actual memory..?
+//maybe fix the weird ass instructions (ie ones that require msb extension on zero extension)
+//(msb stands for most significant bit extended... probably for signed stuff...)
