@@ -1438,18 +1438,70 @@ void cpu_print_state(cpu_state state, int reg_cap) {
 	}	
 }
 
+cpu_state run_instruction(cpu_state initial_state, char * instruction_text) {
+	instruction * instr = decode_instruction(encode_instruction(get_tokenized_instruction(instruction_text)));
+	cpu_state intial_state = execute_instruction(initial_state, *instr);
+	free(instr);
+	return intial_state;
+}
+
 void test_execution() {
 	cpu_state test_state = cpu_create(1024);
 
 	cpu_print_state(test_state, 4);
-	test_state = execute_instruction(test_state, *decode_instruction(encode_instruction(get_tokenized_instruction("addi r0, r2, 10"))));
+	test_state = run_instruction(test_state, "ori r0, r2, -10");
 	cpu_print_state(test_state, 4);
 
 	cpu_delete(test_state);
 }
 
+cpu_state load_program_into_memory(char ** program_text, cpu_state state) {
+	uint32_t * mem_loc = state.memory;
+	char * current_line; 
+	int i = 0;
+	state.memory[i+1] = encode_instruction(get_tokenized_instruction("ecall"));
+
+	while ((current_line = program_text[i]) != NULL) {
+		state.memory[i+1] = encode_instruction(get_tokenized_instruction(current_line));
+		i ++;
+	}
+
+	state.memory[i+1] = encode_instruction(get_tokenized_instruction("ecall"));
+
+	state.pc = 1;
+	return state;
+};
+
+cpu_state run_program_from_memory(cpu_state state) {
+	while (state.pc != 0) {
+		instruction *instr = decode_instruction(state.memory[state.pc]);
+		state = execute_instruction(state,*instr);
+		free(instr);
+		cpu_print_state(state, 4);
+	}	
+	return state;
+};
+
+void test_run_from_mem() {
+	cpu_state test_state = cpu_create(1024);
+
+	char * program [] = {
+	"addi r0, r1, 10",
+	"addi r0, r1, 10",
+	"addi r0, r1, 10",
+	"addi r0, r1, 10",
+	NULL
+	};
+
+	test_state = load_program_into_memory(program, test_state);
+	test_state = run_program_from_memory(test_state);
+
+	cpu_delete(test_state);
+}
+
 int main() {
-	test_execution();
+	test_run_from_mem();
+	//test_execution();
 	//test_assembly_disassembly();
 }
 
